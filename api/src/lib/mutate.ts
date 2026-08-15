@@ -41,6 +41,21 @@ export interface MutationRun {
   rows: unknown[][];
 }
 
+// Fresh executor connection targeting a work DB (the executor holds DML+DDL on the ex_ pattern).
+function executorConn(dbName: string, multi: boolean) {
+  return mysql.createConnection({
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.execUser,
+    password: config.db.execPassword,
+    database: dbName,
+    multipleStatements: multi,
+    charset: 'utf8mb4',
+    dateStrings: true,
+    decimalNumbers: false,
+  });
+}
+
 // Reset -> run learner SQL -> run hidden verification query, all serialized by a MySQL lock so
 // two concurrent attempts on the same instance never corrupt it.
 export async function runMutation(
@@ -69,22 +84,21 @@ export async function runMutation(
     try {
       await provision(dbName, opts.schemaSql, opts.seedSql);
 
-      // Fresh executor connection so it authenticates AFTER the grants were applied.
-      const exec = await mysql.createConnection({
-        host: config.db.host,
-        port: config.db.port,
-        user: config.db.execUser,
-        password: config.db.execPassword,
-        database: dbName,
-        multipleStatements: !!opts.allowMultiStatement,
-        charset: 'utf8mb4',
-        dateStrings: true,
-        decimalNumbers: false,
-      });
+      // Run the learner statement on its own executor connection, then CLOSE it. Any uncommitted
+      // transaction rolls back on close — so a forgotten COMMIT is correctly NOT persisted.
+      const exec = await executorConn(dbName, !!opts.allowMultiStatement);
       try {
         await exec.query(`SET SESSION max_execution_time = ${Number(config.queryTimeoutMs)}`);
         await exec.query({ sql: opts.learnerSql, timeout: config.queryTimeoutMs + 500 });
-        const [rows, fields] = (await exec.query({ sql: opts.verifySql, rowsAsArray: true })) as unknown as [
+      } finally {
+        await exec.end();
+      }
+
+      // Validate the PERSISTED final state on a SEPARATE connection (uncommitted changes are
+      // invisible here — this is what makes COMMIT/ROLLBACK meaningful).
+      const verify = await executorConn(dbName, false);
+      try {
+        const [rows, fields] = (await verify.query({ sql: opts.verifySql, rowsAsArray: true })) as unknown as [
           unknown,
           unknown,
         ];
@@ -92,7 +106,7 @@ export async function runMutation(
         const data: unknown[][] = Array.isArray(rows) ? (rows as unknown[][]) : [];
         return { columns, rows: data };
       } finally {
-        await exec.end();
+        await verify.end();
       }
     } finally {
       await lockConn.query('SELECT RELEASE_LOCK(?)', [lockName]);

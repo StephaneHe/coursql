@@ -1596,6 +1596,174 @@ const CARDS: Card[] = [
       explanationFr: "DELETE FROM todo WHERE id = 2 ne supprime que la tâche 2 ; il reste les tâches 1 et 3.",
     },
   },
+  {
+    slug: 'C45',
+    moduleSlug: 'M13',
+    moduleTitle: 'Modifier les données',
+    position: 45,
+    title: 'Transactions (COMMIT / ROLLBACK)',
+    conceptSlug: 'transactions',
+    prerequisites: ['C42', 'C44'],
+    explanationFr:
+      "Une transaction groupe plusieurs modifications : START TRANSACTION commence, COMMIT enregistre " +
+      "définitivement, ROLLBACK annule tout. Sans COMMIT, les changements ne sont PAS enregistrés.",
+    exampleSql: 'START TRANSACTION; DELETE FROM todo WHERE id = 1; ROLLBACK;',
+    exampleResultFr: "L'exemple supprime puis ANNULE (ROLLBACK) : la table est inchangée.",
+    statementFr: "Dans une transaction, ajoute la tâche (id=3, label='Payer la facture', done=0) puis ENREGISTRE-la avec COMMIT.",
+    tables: [
+      {
+        name: 'todo',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'label', type: 'VARCHAR(60)' },
+          { name: 'done', type: 'TINYINT(1)' },
+        ],
+        sampleRows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 1],
+        ],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c45-transaction',
+    gating: {
+      kind: 'mutation',
+      permissions: 'dml',
+      allowMultiStatement: true,
+      schemaSql: 'CREATE TABLE todo (id INT PRIMARY KEY, label VARCHAR(60) NOT NULL, done TINYINT NOT NULL DEFAULT 0) ENGINE=InnoDB;',
+      seedSql: "INSERT INTO todo (id, label, done) VALUES (1, 'Acheter du pain', 0), (2, 'Lire un livre', 1);",
+      solutionSql: "START TRANSACTION; INSERT INTO todo (id, label, done) VALUES (3, 'Payer la facture', 0); COMMIT;",
+      verifySql: 'SELECT id, label, done FROM todo ORDER BY id;',
+      expected: {
+        columns: ['id', 'label', 'done'],
+        rows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 1],
+          [3, 'Payer la facture', 0],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Commence par START TRANSACTION;', "Ajoute la tâche avec INSERT INTO todo ...;", "Termine par COMMIT; — sans lui, rien n'est enregistré."],
+      explanationFr: "START TRANSACTION puis INSERT puis COMMIT enregistre la tâche 3. Sans COMMIT, elle disparaîtrait à la fin.",
+    },
+  },
+  {
+    slug: 'C46',
+    moduleSlug: 'M14',
+    moduleTitle: 'Concevoir un schéma',
+    position: 46,
+    title: 'CREATE TABLE',
+    conceptSlug: 'create-table',
+    prerequisites: ['C3', 'C30'],
+    explanationFr:
+      "CREATE TABLE crée une nouvelle table : on liste les colonnes avec leur type, et on désigne la clé " +
+      "primaire. Ta base de travail est vide : c'est à toi de créer la table.",
+    exampleSql: 'CREATE TABLE exemple (id INT PRIMARY KEY, libelle VARCHAR(30));',
+    exampleResultFr: "L'exemple crée une table « exemple » avec deux colonnes.",
+    statementFr: "Crée une table nommée produits avec : id de type INT en clé primaire (PRIMARY KEY), et nom de type VARCHAR(50).",
+    tables: [],
+    gatingExerciseSlug: 'gate-c46-create-table',
+    gating: {
+      kind: 'mutation',
+      permissions: 'ddl',
+      schemaSql: '',
+      seedSql: '',
+      solutionSql: 'CREATE TABLE produits (id INT PRIMARY KEY, nom VARCHAR(50));',
+      verifySql:
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'produits' ORDER BY ordinal_position;",
+      expected: {
+        columns: ['COLUMN_NAME', 'DATA_TYPE'],
+        rows: [
+          ['id', 'int'],
+          ['nom', 'varchar'],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise CREATE TABLE produits ( ... ).', 'Déclare id INT PRIMARY KEY.', 'Ajoute nom VARCHAR(50).'],
+      explanationFr: "CREATE TABLE produits (id INT PRIMARY KEY, nom VARCHAR(50)) crée la table avec ses deux colonnes.",
+    },
+  },
+  {
+    slug: 'C47',
+    moduleSlug: 'M14',
+    moduleTitle: 'Concevoir un schéma',
+    position: 47,
+    title: 'ALTER TABLE',
+    conceptSlug: 'alter-table',
+    prerequisites: ['C46'],
+    explanationFr:
+      "ALTER TABLE modifie une table existante, par exemple pour ajouter une colonne : " +
+      "ALTER TABLE table ADD COLUMN colonne type.",
+    exampleSql: 'ALTER TABLE produits ADD COLUMN description VARCHAR(100);',
+    exampleResultFr: "L'exemple ajoute une colonne description.",
+    statementFr: "Ajoute à la table produits une colonne prix de type DECIMAL(6,2) (ALTER TABLE ... ADD COLUMN).",
+    tables: [
+      {
+        name: 'produits',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'nom', type: 'VARCHAR(50)' },
+        ],
+        sampleRows: [],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c47-alter-table',
+    gating: {
+      kind: 'mutation',
+      permissions: 'ddl',
+      schemaSql: 'CREATE TABLE produits (id INT PRIMARY KEY, nom VARCHAR(50));',
+      seedSql: '',
+      solutionSql: 'ALTER TABLE produits ADD COLUMN prix DECIMAL(6,2);',
+      verifySql:
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'produits' ORDER BY ordinal_position;",
+      expected: {
+        columns: ['COLUMN_NAME', 'DATA_TYPE'],
+        rows: [
+          ['id', 'int'],
+          ['nom', 'varchar'],
+          ['prix', 'decimal'],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise ALTER TABLE produits ADD COLUMN ...', 'La colonne s appelle prix.', 'Son type est DECIMAL(6,2).'],
+      explanationFr: "ALTER TABLE produits ADD COLUMN prix DECIMAL(6,2) ajoute la colonne prix à la table existante.",
+    },
+  },
+  {
+    slug: 'C48',
+    moduleSlug: 'M14',
+    moduleTitle: 'Concevoir un schéma',
+    position: 48,
+    title: 'Contraintes (NOT NULL, PRIMARY KEY)',
+    conceptSlug: 'constraints',
+    prerequisites: ['C46', 'C30'],
+    explanationFr:
+      "Les contraintes protègent les données : PRIMARY KEY (identifiant unique), NOT NULL (valeur obligatoire), " +
+      "UNIQUE (pas de doublon), FOREIGN KEY (référence valide). Ici on rend une colonne obligatoire avec NOT NULL.",
+    exampleSql: 'CREATE TABLE exemple (id INT PRIMARY KEY, code VARCHAR(10) NOT NULL);',
+    exampleResultFr: "L'exemple crée une table dont la colonne code est obligatoire.",
+    statementFr: "Crée une table utilisateurs avec id INT en PRIMARY KEY et email VARCHAR(80) OBLIGATOIRE (NOT NULL).",
+    tables: [],
+    gatingExerciseSlug: 'gate-c48-constraints',
+    gating: {
+      kind: 'mutation',
+      permissions: 'ddl',
+      schemaSql: '',
+      seedSql: '',
+      solutionSql: 'CREATE TABLE utilisateurs (id INT PRIMARY KEY, email VARCHAR(80) NOT NULL);',
+      verifySql:
+        "SELECT column_name, is_nullable FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'utilisateurs' ORDER BY ordinal_position;",
+      expected: {
+        columns: ['COLUMN_NAME', 'IS_NULLABLE'],
+        rows: [
+          ['id', 'NO'],
+          ['email', 'NO'],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Crée la table avec CREATE TABLE utilisateurs ( ... ).', 'id INT PRIMARY KEY (une clé primaire est non nulle).', 'email VARCHAR(80) NOT NULL rend la colonne obligatoire.'],
+      explanationFr: "PRIMARY KEY rend id non nul, et NOT NULL rend email obligatoire : les deux colonnes sont « NO » (non nullable).",
+    },
+  },
 ];
 
 const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]));
