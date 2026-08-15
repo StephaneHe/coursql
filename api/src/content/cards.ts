@@ -1056,6 +1056,175 @@ const CARDS: Card[] = [
       explanationFr: "HAVING COUNT(*) > 1 ne garde que les groupes de plus d'un livre : seul Saint-Exupéry (3).",
     },
   },
+  {
+    slug: 'C30',
+    moduleSlug: 'M11',
+    moduleTitle: 'Relier les tables',
+    position: 30,
+    title: 'Clés primaire et étrangère',
+    conceptSlug: 'primary-foreign-key',
+    prerequisites: ['C1', 'C2'],
+    explanationFr:
+      "Une clé primaire (PRIMARY KEY) identifie chaque ligne de façon unique (souvent la colonne id). " +
+      "Une clé étrangère (FOREIGN KEY) est une colonne qui référence la clé primaire d'une autre table, " +
+      "pour relier les données. Dans loans, member_id pointe vers members.id et book_id vers books.id.",
+    statementFr: "Dans la table loans, member_id référence un membre de la table members. Comment appelle-t-on ce type de colonne ?",
+    tables: [LOANS_TABLE],
+    gatingExerciseSlug: 'gate-c30-keys',
+    gating: {
+      kind: 'quiz',
+      questionFr: "member_id (qui référence members.id) est…",
+      options: [
+        'une clé primaire (PRIMARY KEY)',
+        'une clé étrangère (FOREIGN KEY)',
+        'un simple alias',
+        'une valeur NULL',
+      ],
+      correctIndex: 1,
+      hints: ['La clé primaire identifie la ligne (id).', 'Ici la colonne pointe vers une AUTRE table.'],
+      explanationFr: "member_id est une clé étrangère : elle référence la clé primaire (id) de la table members.",
+    },
+  },
+  {
+    slug: 'C31',
+    moduleSlug: 'M11',
+    moduleTitle: 'Relier les tables',
+    position: 31,
+    title: 'INNER JOIN',
+    conceptSlug: 'inner-join',
+    prerequisites: ['C30', 'C5'],
+    explanationFr:
+      "INNER JOIN relie deux tables sur une condition (souvent clé étrangère = clé primaire) et ne garde que " +
+      "les lignes qui ont une correspondance dans les deux tables. On écrit table1 INNER JOIN table2 ON ...",
+    exampleSql: 'SELECT * FROM loans INNER JOIN members ON loans.member_id = members.id;',
+    exampleResultFr: "L'exemple relie chaque emprunt à son membre (toutes les colonnes).",
+    statementFr: "Pour chaque emprunt, affiche le nom du membre (members.name) et l'identifiant du livre (loans.book_id).",
+    tables: [MEMBERS_TABLE, LOANS_TABLE],
+    gatingExerciseSlug: 'gate-c31-inner-join',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT members.name, loans.book_id FROM members INNER JOIN loans ON members.id = loans.member_id;',
+      expected: {
+        columns: ['name', 'book_id'],
+        rows: [
+          ['Alice', 1],
+          ['Alice', 2],
+          ['Bruno', 2],
+          ['Chloé', 5],
+          ['Emma', 1],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Relie members et loans avec INNER JOIN ... ON.', 'La condition est members.id = loans.member_id.', 'David (sans emprunt) ne doit PAS apparaître.'],
+      explanationFr: "INNER JOIN ne garde que les correspondances : les 5 emprunts avec leur membre. David, sans emprunt, est absent.",
+    },
+  },
+  {
+    slug: 'C32',
+    moduleSlug: 'M11',
+    moduleTitle: 'Relier les tables',
+    position: 32,
+    title: 'LEFT JOIN',
+    conceptSlug: 'left-join',
+    prerequisites: ['C31'],
+    explanationFr:
+      "LEFT JOIN garde TOUTES les lignes de la table de gauche, même sans correspondance à droite : les colonnes " +
+      "manquantes valent alors NULL. Idéal pour repérer ce qui n'a pas de lien (un membre sans emprunt).",
+    exampleSql: 'SELECT books.title, loans.id FROM books LEFT JOIN loans ON books.id = loans.book_id;',
+    exampleResultFr: "L'exemple liste tous les livres, même ceux jamais empruntés (loans.id = NULL).",
+    statementFr: "Affiche le nom de TOUS les membres et l'id du livre emprunté (loans.book_id), y compris les membres sans emprunt (LEFT JOIN).",
+    tables: [MEMBERS_TABLE, LOANS_TABLE],
+    gatingExerciseSlug: 'gate-c32-left-join',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT members.name, loans.book_id FROM members LEFT JOIN loans ON members.id = loans.member_id;',
+      expected: {
+        columns: ['name', 'book_id'],
+        rows: [
+          ['Alice', 1],
+          ['Alice', 2],
+          ['Bruno', 2],
+          ['Chloé', 5],
+          ['David', null],
+          ['Emma', 1],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise LEFT JOIN pour garder tous les membres.', 'members est la table de gauche.', 'David doit apparaître avec book_id = NULL.'],
+      explanationFr: "LEFT JOIN garde tous les membres ; David, sans emprunt, apparaît avec book_id NULL (un INNER JOIN l'aurait exclu).",
+    },
+  },
+  {
+    slug: 'C33',
+    moduleSlug: 'M11',
+    moduleTitle: 'Relier les tables',
+    position: 33,
+    title: 'Jointures multiples',
+    conceptSlug: 'multi-join',
+    prerequisites: ['C31'],
+    explanationFr:
+      "On peut enchaîner plusieurs JOIN pour relier trois tables ou plus : ici members → loans → books, " +
+      "afin d'afficher côte à côte des informations venant des trois tables.",
+    exampleSql: 'SELECT loans.id, members.name FROM loans INNER JOIN members ON members.id = loans.member_id;',
+    exampleResultFr: "L'exemple relie emprunts et membres (deux tables).",
+    statementFr: "Pour chaque emprunt, affiche le nom du membre (members.name) et le TITRE du livre (books.title) — relie members, loans et books.",
+    tables: [MEMBERS_TABLE, LOANS_TABLE, BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c33-multi-join',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql:
+        'SELECT members.name, books.title FROM members INNER JOIN loans ON members.id = loans.member_id INNER JOIN books ON books.id = loans.book_id;',
+      expected: {
+        columns: ['name', 'title'],
+        rows: [
+          ['Alice', 'Les Misérables'],
+          ['Alice', 'Le Petit Prince'],
+          ['Bruno', 'Le Petit Prince'],
+          ['Chloé', 'Germinal'],
+          ['Emma', 'Les Misérables'],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Enchaîne deux INNER JOIN : members→loans puis loans→books.', 'loans relie members.id et books.id.', 'Affiche members.name et books.title.'],
+      explanationFr: "Deux jointures relient les trois tables : chaque emprunt montre le membre et le titre du livre.",
+    },
+  },
+  {
+    slug: 'C34',
+    moduleSlug: 'M11',
+    moduleTitle: 'Relier les tables',
+    position: 34,
+    title: 'Autojointure',
+    conceptSlug: 'self-join',
+    prerequisites: ['C31'],
+    explanationFr:
+      "Une autojointure relie une table à ELLE-MÊME, avec deux alias différents. Utile quand une colonne " +
+      "référence la même table : ici employees.manager_id pointe vers un autre employee.",
+    exampleSql: 'SELECT e.name, m.name FROM employees e LEFT JOIN employees m ON e.manager_id = m.id;',
+    exampleResultFr: "L'exemple (LEFT JOIN) montre aussi Diane, qui n'a pas de chef (NULL).",
+    statementFr: "Affiche le nom de chaque employé et le nom de son chef. Emploie une autojointure (INNER) sur employees — les employés sans chef sont exclus.",
+    tables: [EMPLOYEES_TABLE],
+    gatingExerciseSlug: 'gate-c34-self-join',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT e.name, m.name FROM employees e INNER JOIN employees m ON e.manager_id = m.id;',
+      expected: {
+        columns: ['name', 'name'],
+        rows: [
+          ['Karim', 'Diane'],
+          ['Léa', 'Diane'],
+          ['Tom', 'Karim'],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise deux alias de la même table : employees e et employees m.', 'Relie e.manager_id = m.id.', 'Diane (sans chef) est exclue par le INNER JOIN.'],
+      explanationFr: "L'autojointure relie chaque employé (e) à son chef (m) via manager_id. Diane, sans chef, est absente (INNER).",
+    },
+  },
 ];
 
 const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]));
