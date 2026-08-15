@@ -3,6 +3,11 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.7.2] - 2026-08-15
+
+### Fixed
+- **Carte C18 « ORDER BY DESC et deuxième clé » — données ne révélaient pas le concept** : la 2ᵉ clé était `id ASC` (= l'ordre naturel InnoDB), donc `ORDER BY year DESC, id` donnait le même résultat que `ORDER BY year DESC` seul. Correctif : 2ᵉ clé passée à **`title ASC`**, et le livre id 4 (ex-æquo 1943 avec id 2) renommé **« Courrier Sud »** (Saint-Exupéry) — un titre qui trie AVANT « Le Petit Prince ». Ainsi les ex-æquo sont réordonnés par rapport à l'ordre d'id : `year DESC` seul ≠ `year DESC, title ASC` (vérifié via l'API : la variante à une clé échoue). Seed appliqué à la base en cours sans effacer le profil Alex ; expected de C5/C9/C10/C13/C22/C24/C35 mis à jour (id 4). Jointures non impactées (book 4 n'est pas emprunté).
+
 ## [1.7.1] - 2026-08-15
 
 ### Changed

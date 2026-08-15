@@ -83,7 +83,7 @@ const BOOKS_TABLE: TableSchema = {
     [1, 'Les Misérables', 'Victor Hugo', 1862],
     [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
     [3, 'Contes', null, 1875],
-    [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+    [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
     [5, 'Germinal', 'Émile Zola', 1885],
     [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
   ],
@@ -297,7 +297,7 @@ const CARDS: Card[] = [
           ['Les Misérables', 1862],
           ['Le Petit Prince', 1943],
           ['Contes', 1875],
-          ['Le Petit Prince', 1943],
+          ['Courrier Sud', 1943],
           ['Germinal', 1885],
           ['Vol de Nuit', 1931],
         ],
@@ -423,7 +423,7 @@ const CARDS: Card[] = [
         columns: ['id', 'title', 'author', 'year'],
         rows: [
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
-          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
@@ -455,7 +455,7 @@ const CARDS: Card[] = [
         rows: [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
-          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
           [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },
@@ -554,7 +554,7 @@ const CARDS: Card[] = [
         rows: [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
-          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
           [5, 'Germinal', 'Émile Zola', 1885],
           [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
@@ -707,21 +707,22 @@ const CARDS: Card[] = [
     prerequisites: ['C17'],
     explanationFr:
       "DESC trie en décroissant. En cas d'égalité, on ajoute une deuxième colonne de tri pour départager " +
-      "(ORDER BY colonne1 DESC, colonne2). Ici deux livres ont la même année 1943 : le id les départage.",
-    exampleSql: 'SELECT * FROM members ORDER BY city;',
-    exampleResultFr: "L'exemple trie les membres par ville (croissant).",
-    statementFr: "Affiche les livres triés par année DÉCROISSANTE, puis par id CROISSANT en cas d'égalité (ORDER BY year DESC, id).",
+      "(ORDER BY colonne1 DESC, colonne2). Ici deux livres partagent l'année 1943 : c'est le titre qui les départage, " +
+      "dans un ordre différent de celui du tableau.",
+    exampleSql: 'SELECT * FROM members ORDER BY city ASC, name ASC;',
+    exampleResultFr: "L'exemple trie les membres par ville, puis par nom quand la ville est identique.",
+    statementFr: "Affiche les livres triés par année DÉCROISSANTE, puis par titre (title) CROISSANT en cas d'égalité (ORDER BY year DESC, title ASC).",
     tables: [BOOKS_TABLE],
     gatingExerciseSlug: 'gate-c18-order-desc',
     gating: {
       kind: 'sql',
       seedDb: SEED,
-      solutionSql: 'SELECT * FROM books ORDER BY year DESC, id;',
+      solutionSql: 'SELECT * FROM books ORDER BY year DESC, title ASC;',
       expected: {
         columns: ['id', 'title', 'author', 'year'],
         rows: [
+          [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
-          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
           [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
           [5, 'Germinal', 'Émile Zola', 1885],
           [3, 'Contes', null, 1875],
@@ -729,8 +730,9 @@ const CARDS: Card[] = [
         ],
       },
       compare: { orderSensitive: true, compareColumnNames: false },
-      hints: ['Décroissant = DESC après la colonne.', 'Trie d abord par year DESC.', 'Ajoute , id pour départager les deux livres de 1943.'],
-      explanationFr: "ORDER BY year DESC, id trie par année décroissante ; les deux livres de 1943 sont départagés par id croissant.",
+      hints: ['Décroissant = DESC après la colonne.', 'Trie d abord par year DESC.', 'Ajoute , title ASC : pour 1943, « Courrier Sud » passe avant « Le Petit Prince ».'],
+      explanationFr:
+        "ORDER BY year DESC, title ASC trie par année décroissante, puis départage les deux livres de 1943 par titre : « Courrier Sud » avant « Le Petit Prince ». Avec seulement year DESC, l'ordre des ex-æquo serait différent.",
     },
   },
   {
@@ -850,7 +852,7 @@ const CARDS: Card[] = [
           ['Les Misérables', 163],
           ['Le Petit Prince', 82],
           ['Contes', 150],
-          ['Le Petit Prince', 82],
+          ['Courrier Sud', 82],
           ['Germinal', 140],
           ['Vol de Nuit', 94],
         ],
@@ -921,7 +923,7 @@ const CARDS: Card[] = [
           ['Les Misérables', 'XIXe'],
           ['Le Petit Prince', 'XXe'],
           ['Contes', 'XIXe'],
-          ['Le Petit Prince', 'XXe'],
+          ['Courrier Sud', 'XXe'],
           ['Germinal', 'XIXe'],
           ['Vol de Nuit', 'XXe'],
         ],
@@ -1265,7 +1267,7 @@ const CARDS: Card[] = [
         columns: ['id', 'title', 'author', 'year'],
         rows: [
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
-          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [4, 'Courrier Sud', 'Antoine de Saint-Exupéry', 1943],
           [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },

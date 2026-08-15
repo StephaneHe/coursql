@@ -78,7 +78,7 @@ function buildApp() {
   app.use(attachUser);
 
   app.get('/api/health', wrap(async (_req, res) => {
-    res.json({ ok: true, version: '1.7.1' });
+    res.json({ ok: true, version: '1.7.2' });
   }));
 
   // --- Identification & sessions ---

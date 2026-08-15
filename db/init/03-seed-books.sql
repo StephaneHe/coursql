@@ -26,11 +26,14 @@ CREATE TABLE IF NOT EXISTS books (
 --    -> AND vs OR give different results.
 --  - year 1943 exists (rows 2,4) so '< 1943' excludes them but '<= 1943' includes them.
 --  - years 1875 and 1931 exist on the BETWEEN bounds -> inclusive bounds matter.
+--  - rows 2 and 4 tie on year 1943 but their titles are in INVERSE order of their id
+--    ('Le Petit Prince' id 2 vs 'Courrier Sud' id 4), so 'ORDER BY year DESC, title ASC'
+--    really reorders the ties vs 'ORDER BY year DESC' alone (2nd sort key is meaningful).
 INSERT INTO books (id, title, author, year) VALUES
   (1, 'Les Misérables',   'Victor Hugo',                1862),
   (2, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943),
   (3, 'Contes',           NULL,                         1875),
-  (4, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943),
+  (4, 'Courrier Sud',     'Antoine de Saint-Exupéry',   1943),
   (5, 'Germinal',         'Émile Zola',                 1885),
   (6, 'Vol de Nuit',      'Antoine de Saint-Exupéry',   1931);
 
