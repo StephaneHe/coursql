@@ -1,0 +1,15 @@
+{
+  "name": "courssql",
+  "version": "1.2.0",
+  "private": true,
+  "description": "coursSQL — interactive web app to learn SQL progressively (MySQL 8.4 LTS). French pedagogy, English code.",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "client",
+    "api"
+  ],
+  "scripts": {
+    "//": "Placeholders — real scripts land with the implementation phase (see docs/DESIGN.md §12.15).",
+    "dev": "echo \"Not implemented yet — see docs/DESIGN.md\" && exit 1"
+  }
+}

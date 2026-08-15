@@ -1,0 +1,50 @@
+# coursSQL — mono-server stack, meant to run INSIDE WSL via Docker Compose.
+# API and MySQL share the "coursql" network; the API reaches MySQL by service name
+# (mysql:3306) — no Windows<->WSL boundary. Only the app port is published to the host,
+# then reachable over the private network (e.g. http://localhost:8080).
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_pw}
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - coursql_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root_dev_pw}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [coursql]
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      APP_DB_USER: coursql_app
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-coursql_app_pw}
+      APP_DB_NAME: coursql_app
+      EXEC_DB_USER: coursql_executor
+      EXEC_DB_PASSWORD: ${EXEC_DB_PASSWORD:-coursql_exec_pw}
+      SESSION_SECRET: ${SESSION_SECRET:-dev_session_secret_change_me}
+      QUERY_TIMEOUT_MS: "3000"
+      MAX_ROWS_RETURNED: "1000"
+      MAX_SQL_LENGTH: "4000"
+    ports:
+      - "${APP_HOST_PORT:-8080}:3000"
+    networks: [coursql]
+
+volumes:
+  coursql_mysql_data:
+
+networks:
+  coursql:

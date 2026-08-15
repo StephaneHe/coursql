@@ -1,0 +1,39 @@
+# Changelog
+
+Toutes les évolutions notables de ce projet sont consignées ici.
+Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
+
+## [1.2.0] - 2026-08-15
+
+### Added
+- **Décisions figées** (DESIGN §12.0) : portée MVP = tranche verticale **C1→C5** d'abord ; gating **bienveillant** (essais illimités, aucun verrouillage) ; **prérequis visibles** par carte (`cards.prerequisites`, informatif) ; **archivage du texte** des tentatives (`exercise_attempts.submitted_sql`) ; **affichage des erreurs SQL** pédagogiques (exigence UX) ; locale **FR unique** + mots-clés **EN** ; déploiement **mono-serveur WSL + the private network** ; **pas de reaper** (instance réutilisée/réinitialisée) ; constantes d'exécution par défaut (timeout 3 s, cap 1000 lignes, SQL ≤ 4000 car.).
+- **Topologie de déploiement** (DESIGN §12.4.c) : toute la pile (MySQL + API + front) dans **WSL via Docker Compose**, API↔MySQL par réseau interne Compose (aucune frontière Windows↔WSL), port publié exposé via the private network (`<host>:<port>`).
+- **Implémentation — tranche verticale (Phase B)** : scaffold Docker Compose (MySQL 8.4), API Node/TS (sessions, cards, execute, hint, solution, progression), client React/TS (UI en cartes avec zone prérequis, éditeur SQL, résultat/erreur), 3 comptes MySQL (moindre privilège), base seed lecture seule, cartes **C1→C5**.
+
+### Changed
+- `exercise_attempts` archive le SQL soumis ; `exercise_instances` réutilisées (pas de reaper) ; anatomie de carte enrichie (zone prérequis + zone résultat/erreur ferme).
+
+## [1.1.0] - 2026-08-15
+
+### Changed
+- **Parcours re-découpé en cartes** : 15 modules courts / **50 cartes** (une notion = une carte), au lieu de 11 modules « gros » (DESIGN §12.2).
+- **Progression par carte** : chaque carte porte un exercice **gating** obligatoire dont la réussite débloque la carte suivante (DESIGN §12.2.b). Les exercices détaillés (`select-all-books`, `top-customers-2023`, `mark-books-returned`) deviennent des exercices d'entraînement **`practice`** optionnels (§12.3).
+- **Modèle de données** : introduction de `cards` (avec `gating_exercise_id`, `gating_kind`), `exercises.role` (`gating`/`practice`), `user_progress` porté par **(user, card)** avec états `locked/available/in_progress/validated/validated_after_hint` + drapeau `solution_viewed` (§12.5).
+- **UI en cartes** : anatomie de la carte-écran (§12.2.a) et 6 états visuels navigables (couleur + icône + libellé) ; cartes validées librement navigables.
+- **Routes API** : `/api/cards/:slug`, `/api/cards/:slug/next`, `execute` distingue gating/practice (§12.10).
+
+### Added
+- **Décision d'isolation tranchée** (DESIGN §12.4.a) : hybride **base seed partagée en lecture seule** (cartes SELECT) + **base MySQL par utilisateur × exercice mutant** (DML/DDL) ; option **Docker-par-exercice écartée** au MVP à cause de la contrainte **Docker-dans-WSL / API côté Windows** (spawn + réseau) ; comparaison explicite des 3 options (a/b/c).
+- Manifeste enrichi (`role`, `card`, dérivation `permissions → isolation`) ; GRANT lecture seule sur bases seed partagées (§12.9).
+- Critères d'acceptation supplémentaires : gating/déblocage, practice sans effet, navigation, seed partagée sûre, quiz gating (§12.14 #16–#20).
+
+## [1.0.0] - 2026-08-15
+
+### Added
+- Conception détaillée du projet dans `docs/DESIGN.md` (livrable de la section 12 du brief : les 16 points).
+- Squelette du dépôt : `README.md`, `CHANGELOG.md`, `package.json` racine (champ `version` = `1.0.0`).
+- Parcours pédagogique complet (11 modules M0–M10, spirale) sous forme de tableau.
+- Trois exercices entièrement spécifiés (`select-all-books`, `top-customers-2023`, `mark-books-returned`).
+- Modèle de données applicatif, format de manifeste d'exercice, modèle de permissions MySQL (3 comptes), routes API, stratégie de reset idempotent, critères d'acceptation.
+
+> Prochaine étape : implémentation selon l'ordre de développement (DESIGN §12.15), à démarrer après arbitrage des questions ouvertes (DESIGN §12.16).
