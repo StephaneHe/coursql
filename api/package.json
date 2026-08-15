@@ -1,0 +1,23 @@
+{
+  "name": "courssql-api",
+  "version": "1.2.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.1"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^4.17.23",
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,38 @@
+import mysql from 'mysql2/promise';
+import { config } from './config';
+
+// Application pool: full DML on coursql_app only. Used for users/sessions/progress/attempts.
+// All queries through this pool are parameterized (OWASP Query Parameterization).
+export const appPool = mysql.createPool({
+  host: config.db.host,
+  port: config.db.port,
+  user: config.db.appUser,
+  password: config.db.appPassword,
+  database: config.db.appName,
+  connectionLimit: 10,
+  multipleStatements: false,
+  charset: 'utf8mb4',
+  waitForConnections: true,
+});
+
+// Executor pool: runs UNTRUSTED learner SQL. SELECT-only on seed_* databases (enforced by
+// MySQL grants, not by the app). No default database — the target seed DB is selected per query.
+export const executorPool = mysql.createPool({
+  host: config.db.host,
+  port: config.db.port,
+  user: config.db.execUser,
+  password: config.db.execPassword,
+  connectionLimit: 10,
+  multipleStatements: false,
+  charset: 'utf8mb4',
+  dateStrings: true,     // keep DATE/DATETIME as strings for deterministic comparison
+  decimalNumbers: false, // keep DECIMAL as string, exact (no float rounding)
+  waitForConnections: true,
+});
+
+export async function pingDatabases(): Promise<void> {
+  const c1 = await appPool.getConnection();
+  try { await c1.query('SELECT 1'); } finally { c1.release(); }
+  const c2 = await executorPool.getConnection();
+  try { await c2.query('SELECT 1'); } finally { c2.release(); }
+}
