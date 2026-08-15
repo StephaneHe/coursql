@@ -3,6 +3,17 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.2.1] - 2026-08-15
+
+### Fixed
+- **Encodage UTF-8 du seed** : le chargement des scripts d'init MySQL se faisait sur une session latin1, ce qui double-encodait les accents (`Les Misérables` → `Les MisÃ©rables`) et faisait échouer la validation de C4/C5. Ajout de `SET NAMES utf8mb4;` en tête des fichiers `db/init/*.sql`. Vérifié de bout en bout après recréation du volume.
+
+### Verified (smoke test end-to-end, pile Docker dans WSL)
+- Pile `up` (MySQL healthy + API), page servie sur `http://localhost:8080` et `http://localhost:8080` (the private network, IP 10.0.0.0).
+- Quiz C1–C3 valident + **gating** débloque la carte suivante ; carte verrouillée → `403`.
+- C4 `SELECT * FROM books` → **pass** (accents corrects, NULL préservé) ; C5 `SELECT title, year` → **pass**.
+- `UPDATE books …` → **bloqué** par privilèges (executor lecture seule) ; colonne inconnue → **erreur pédagogique FR** ; multi-statements → refusé.
+
 ## [1.2.0] - 2026-08-15
 
 ### Added

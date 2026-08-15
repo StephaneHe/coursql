@@ -13,9 +13,13 @@ Application web interactive pour **apprendre le SQL progressivement**, destinée
 **Dans un terminal WSL**, à la racine du projet (monté depuis `<project>`) :
 
 ```bash
-cp .env.example .env        # secrets DEV (à changer pour un vrai déploiement)
-docker compose up --build   # construit le client + l'API, démarre MySQL
+cp .env.example .env         # secrets DEV (à changer pour un vrai déploiement)
+docker compose up -d --build # construit le client + l'API, démarre MySQL (détaché)
+# Selon l'installation, le binaire est « docker-compose » (standalone) au lieu de « docker compose » :
+# docker-compose up -d --build
 ```
+
+> Démarrage à froid : l'API attend que MySQL accepte les connexions (quelques secondes de « waiting for MySQL » dans les logs), c'est normal. Vérifier : `curl http://localhost:8080/api/health`.
 
 Puis ouvrir **http://localhost:8080** (ou via the private network : **http://localhost:8080**).
 

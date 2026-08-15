@@ -2,6 +2,10 @@
 -- Versioned name: seed_books_v1. All users share it; coursql_executor has SELECT only,
 -- so no user can mutate it and no per-user copy is needed (DESIGN §12.4.a).
 
+-- The MySQL entrypoint may load init files on a latin1 session; force utf8mb4 so accented
+-- French data (é, è...) is stored correctly and not double-encoded.
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS seed_books_v1
   CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 

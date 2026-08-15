@@ -3,6 +3,8 @@
 -- Card/exercise CONTENT lives in versioned files (api/src/content), not here (see DESIGN §12.6).
 -- This DB holds only users, sessions, per-card progress and the attempts log.
 
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS coursql_app
   CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
