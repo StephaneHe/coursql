@@ -635,6 +635,19 @@ tables:                           # schema mirror for UI rendering (source of tr
 
 - **Décision** : `manifest.yaml` (lisible humain) + fichiers `.sql`/`.json` séparés. **Alternative** : tout en un seul JSON. **Conséquence** : YAML + SQL séparés = plus lisible, versionnable, et le SQL reste du SQL (coloration, lint). Le `manifest_hash` (SHA-256 de l'ensemble) garantit l'intégrité et la reproductibilité de version.
 
+### 12.6.a — Règles d'authoring des cartes (obligatoires)
+
+Principes à respecter pour **toute** carte, présents et futurs (C1→C50) :
+
+1. **L'exercice gating ≠ l'exemple** : la requête solution du gating **ne doit jamais être identique à la requête montrée en EXEMPLE** sur la même carte. L'exemple *illustre* la notion ; l'énoncé demande une **variation** (autre colonne, autre table, autre valeur, condition déjà vue) qui **force l'application** du concept plutôt que le copier-coller.
+   - *Exemple* : si l'exemple montre `SELECT * FROM books;`, l'exercice demande `SELECT * FROM members;` (autre table) ; si l'exemple filtre `WHERE year = 1943`, l'exercice filtre `WHERE author = 'Victor Hugo'`.
+   - Vérifiable automatiquement : normaliser (trim/casse/espaces) `exampleSql` et `solutionSql` et **refuser l'égalité** (test d'authoring, §12.14).
+2. **Une seule notion neuve** par carte ; tout le reste réutilise des notions **déjà validées** (spirale). L'exercice n'emploie **aucune** notion non encore introduite (`prerequisites`).
+3. **Format `quiz`** uniquement quand il est **plus adapté** qu'écrire du SQL (notions conceptuelles : ce qu'est une table, un type, une clé). Sinon `sql`.
+4. **Zone prérequis** renseignée (`prerequisites`, informative, non bloquante, §12.2.a).
+5. **Indices progressifs** (du plus doux au plus précis) + **solution** masquée + **explication** courte. Gating **bienveillant** (essais illimités).
+6. **Données révélatrices** : chaque seed illustre les pièges de la notion (NULL, doublons, égalités limites, chaînes proches).
+
 ---
 
 ## 12.7 — Fonctionnement détaillé de l'exécution et de la validation

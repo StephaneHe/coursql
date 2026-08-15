@@ -25,3 +25,19 @@ INSERT INTO books (id, title, author, year) VALUES
   (2, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943),
   (3, 'Contes',           NULL,                         1875),
   (4, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943);
+
+-- Second table for variety (NULL city, duplicate city 'Paris' for later DISTINCT/IN cards).
+CREATE TABLE IF NOT EXISTS members (
+  id     INT          NOT NULL,
+  name   VARCHAR(60)  NOT NULL,
+  city   VARCHAR(60)  NULL,          -- NULL = unknown city (Bruno, David)
+  joined DATE         NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+INSERT INTO members (id, name, city, joined) VALUES
+  (1, 'Alice', 'Paris', '2021-03-01'),
+  (2, 'Bruno', NULL,    '2022-07-15'),
+  (3, 'Chloé', 'Lyon',  '2021-11-20'),
+  (4, 'David', NULL,    '2023-01-05'),
+  (5, 'Emma',  'Paris', '2022-05-30');

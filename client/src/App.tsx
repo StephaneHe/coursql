@@ -91,7 +91,14 @@ export function App() {
           )}
         </main>
 
+        {menuOpen && <div className="backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
         <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
+          <div className="drawer-head">
+            <span>Progression</span>
+            <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu">
+              ✕
+            </button>
+          </div>
           <ProgressMenu modules={modules} currentSlug={currentSlug} onSelect={onNavigate} />
         </aside>
       </div>

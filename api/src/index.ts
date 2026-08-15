@@ -23,7 +23,7 @@ import {
   statusOf,
   validateCard,
 } from './progress';
-import { getCard, nextCardSlug, orderedCards, toPublicCard } from './content/cards';
+import { assertAuthoringRules, getCard, nextCardSlug, orderedCards, toPublicCard } from './content/cards';
 import { compareResult } from './lib/compare';
 import { mapSqlError } from './lib/sqlErrors';
 import { preflightSql, runReadOnly } from './lib/execute';
@@ -77,7 +77,7 @@ function buildApp() {
   app.use(attachUser);
 
   app.get('/api/health', wrap(async (_req, res) => {
-    res.json({ ok: true, version: '1.3.0' });
+    res.json({ ok: true, version: '1.4.0' });
   }));
 
   // --- Identification & sessions ---
@@ -311,6 +311,9 @@ function setSessionCookie(res: Response, sid: string): void {
 }
 
 async function main() {
+  // Fail fast if any card violates the authoring rules (e.g. gating == example).
+  assertAuthoringRules();
+
   // Wait for the database to accept connections (compose healthcheck already gates this,
   // but retry a few times to be robust on cold start).
   for (let attempt = 1; attempt <= 30; attempt++) {

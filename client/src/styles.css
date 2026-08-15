@@ -150,6 +150,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .app-body { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; padding: 20px 16px; align-items: flex-start; }
 .content { flex: 1; min-width: 0; }
 .sidebar { width: 320px; flex-shrink: 0; }
+/* Drawer chrome is only used on mobile (overlay); hidden on desktop. */
+.drawer-head { display: none; }
+.backdrop { display: none; }
 
 /* Card view */
 .card-view {
@@ -254,9 +257,56 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 860px) {
   .menu-toggle { display: block; }
   .app-body { flex-direction: column; }
-  .sidebar {
-    width: 100%;
-    display: none;
+
+  /* Progress menu becomes an overlay drawer, scrollable, above the content. */
+  .sidebar { display: none; }
+  .sidebar.open {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: min(340px, 85vw);
+    z-index: 50;
+    background: var(--panel);
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.22);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px 24px;
   }
-  .sidebar.open { display: block; }
+  .sidebar.open .drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+    font-weight: 700;
+    z-index: 1;
+  }
+  .drawer-close {
+    background: #f1f5f9;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+  /* Inside the drawer the menu must flow normally (not sticky/bordered). */
+  .sidebar.open .progress-menu {
+    position: static;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 40;
+  }
 }

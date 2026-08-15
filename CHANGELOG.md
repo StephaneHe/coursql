@@ -3,6 +3,17 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.4.0] - 2026-08-15
+
+### Added
+- **Contenu C6→C13** (8 cartes) : C6 alias `AS` ; C7 `WHERE` + `=` ; C8 comparaisons `<,>,<=,>=,<>` ; C9 `AND` ; C10 `OR` ; C11 `NOT` + parenthèses ; C12 `IS NULL` ; C13 `IS NOT NULL`. Modules M2→M5. Chaque carte SELECT validée par résultat, gating bienveillant, zone prérequis, indices + solution.
+- **Table seed `members`** (ville NULL, doublon « Paris ») ajoutée à `seed_books_v1` pour varier les exercices (et préparer DISTINCT/IN/tri à venir).
+- **Règle d'authoring « exercice ≠ exemple »** documentée (DESIGN §12.6.a) + **garde automatique** au démarrage (`assertAuthoringRules`) qui refuse toute carte dont la solution gating est identique à son exemple.
+
+### Fixed
+- **Carte C4** : l'exercice était la copie exacte de l'exemple (`SELECT * FROM books;`). Désormais l'exemple porte sur `books` et l'exercice sur `members` (même notion, requête différente).
+- **Menu mobile** : le menu de progression s'affiche maintenant en **overlay drawer** (position fixe à droite, scrollable, backdrop cliquable + bouton ✕ de fermeture) au lieu d'être poussé sous le contenu.
+
 ## [1.3.0] - 2026-08-15
 
 ### Fixed
