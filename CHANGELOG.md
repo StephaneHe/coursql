@@ -3,6 +3,23 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.7.0] - 2026-08-15
+
+### Added — CURRICULUM COMPLET (50 cartes / 15 modules)
+- **C21–C24** : fonctions texte/nombre/date, `CASE` (M8).
+- **C25–C29** : `COUNT/SUM/AVG/MIN/MAX`, `GROUP BY`, `HAVING` (M9, M10).
+- **C30–C34** : PK/FK (quiz), `INNER/LEFT JOIN`, jointures multiples, autojointure (M11).
+- **C35–C41** : sous-requêtes (scalaire/IN/corrélée), `EXISTS/NOT EXISTS`, CTE `WITH`, `UNION`, `INTERSECT/EXCEPT` (M12).
+- **Infra cartes mutantes** : `provisionerPool` crée/réinitialise une base de travail isolée `ex_<hash(user,card)>` (schéma+seed versionnés) ; executor DML+DDL sur le motif `ex_` (noms = hash sha256 non devinables ; `coursql_app` reste inaccessible) ; validation par **état final** via requête de vérification cachée, sur une **connexion séparée** (donc `COMMIT` est significatif) ; route `reset` idempotente, verrou `GET_LOCK`, une instance par user×carte réutilisée (pas de reaper).
+- **C42–C45** : `INSERT`, `UPDATE`, `DELETE`, transactions `START TRANSACTION/COMMIT/ROLLBACK` (M13).
+- **C46–C49** : `CREATE TABLE`, `ALTER TABLE`, contraintes (`NOT NULL`/`PRIMARY KEY`), index + intro `EXPLAIN` — validés via `information_schema` (M14).
+- **C50** : projet final combinant `INNER JOIN` + `GROUP BY`/`COUNT` + `ORDER BY` (M15).
+- Seed enrichi : tables `loans`, `fines` (DECIMAL), `employees` (autojointure) ; données révélatrices (non-appariés, doublons, NULL, décorrélation, bornes).
+
+### Notes
+- `INTERSECT`/`EXCEPT` confirmés fonctionnels en MySQL 8.4.
+- Smoke-test end-to-end : les 50 cartes valident avec leur solution ; variantes naïves (opérateur, `COMMIT` oublié, `NOT NULL` manquant, `WHERE` manquant) échouent → concepts significatifs. Isolation vérifiée : accès à `coursql_app` depuis l'executor mutant bloqué.
+
 ## [1.5.0] - 2026-08-15
 
 ### Fixed

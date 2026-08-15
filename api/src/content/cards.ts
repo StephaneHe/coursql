@@ -1764,6 +1764,93 @@ const CARDS: Card[] = [
       explanationFr: "PRIMARY KEY rend id non nul, et NOT NULL rend email obligatoire : les deux colonnes sont « NO » (non nullable).",
     },
   },
+  {
+    slug: 'C49',
+    moduleSlug: 'M14',
+    moduleTitle: 'Concevoir un schéma',
+    position: 49,
+    title: 'Index (et intro à EXPLAIN)',
+    conceptSlug: 'index-explain',
+    prerequisites: ['C46'],
+    explanationFr:
+      "Un index accélère les recherches sur une colonne (comme l'index d'un livre), sans changer les résultats. " +
+      "CREATE INDEX nom ON table (colonne). La commande EXPLAIN devant un SELECT montre le « plan » : comment " +
+      "MySQL compte s'y prendre, et s'il utilise un index.",
+    exampleSql: 'CREATE INDEX idx_titre ON catalogue (titre);',
+    exampleResultFr: "L'exemple crée un index sur la colonne titre.",
+    statementFr: "Crée un index nommé idx_annee sur la colonne annee de la table catalogue (CREATE INDEX).",
+    tables: [
+      {
+        name: 'catalogue',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'titre', type: 'VARCHAR(50)' },
+          { name: 'annee', type: 'INT' },
+        ],
+        sampleRows: [
+          [1, 'Alpha', 2001],
+          [2, 'Beta', 1999],
+          [3, 'Gamma', 2010],
+        ],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c49-index',
+    gating: {
+      kind: 'mutation',
+      permissions: 'ddl',
+      schemaSql: 'CREATE TABLE catalogue (id INT PRIMARY KEY, titre VARCHAR(50), annee INT);',
+      seedSql: "INSERT INTO catalogue (id, titre, annee) VALUES (1, 'Alpha', 2001), (2, 'Beta', 1999), (3, 'Gamma', 2010);",
+      solutionSql: 'CREATE INDEX idx_annee ON catalogue (annee);',
+      verifySql:
+        "SELECT index_name, column_name FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'catalogue' AND index_name = 'idx_annee';",
+      expected: { columns: ['INDEX_NAME', 'COLUMN_NAME'], rows: [['idx_annee', 'annee']] },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise CREATE INDEX nom ON table (colonne).', "Le nom de l'index est idx_annee.", 'La colonne indexée est annee.'],
+      explanationFr: "CREATE INDEX idx_annee ON catalogue (annee) crée l'index. Il accélère les filtres sur annee sans changer les résultats.",
+    },
+  },
+  {
+    slug: 'C50',
+    moduleSlug: 'M15',
+    moduleTitle: 'Projet final',
+    position: 50,
+    title: 'Projet final',
+    conceptSlug: 'final-project',
+    prerequisites: ['C31', 'C28', 'C18'],
+    explanationFr:
+      "Bravo d'être arrivé jusqu'ici ! Ce dernier défi combine plusieurs notions : une jointure (INNER JOIN), " +
+      "un regroupement (GROUP BY) avec COUNT, et un tri (ORDER BY). Prends ton temps et décompose le problème.",
+    exampleSql:
+      'SELECT books.title, COUNT(*) AS nb FROM books INNER JOIN loans ON books.id = loans.book_id GROUP BY books.id, books.title ORDER BY nb DESC;',
+    exampleResultFr: "L'exemple compte combien de fois chaque livre a été emprunté (du plus au moins emprunté).",
+    statementFr:
+      "Pour chaque membre ayant emprunté au moins un livre, affiche son nom (name) et son nombre d'emprunts (nb), du plus actif au moins actif, puis par nom en cas d'égalité. (INNER JOIN members + loans, GROUP BY, ORDER BY nb DESC puis name.)",
+    tables: [MEMBERS_TABLE, LOANS_TABLE],
+    gatingExerciseSlug: 'gate-c50-final',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql:
+        'SELECT members.name, COUNT(*) AS nb FROM members INNER JOIN loans ON members.id = loans.member_id GROUP BY members.id, members.name ORDER BY nb DESC, members.name;',
+      expected: {
+        columns: ['name', 'nb'],
+        rows: [
+          ['Alice', 2],
+          ['Bruno', 1],
+          ['Chloé', 1],
+          ['Emma', 1],
+        ],
+      },
+      compare: { orderSensitive: true, compareColumnNames: false },
+      hints: [
+        'Relie members et loans avec INNER JOIN (David, sans emprunt, sera naturellement exclu).',
+        'Regroupe par membre avec GROUP BY et compte avec COUNT(*).',
+        'Trie avec ORDER BY nb DESC, puis members.name pour départager.',
+      ],
+      explanationFr:
+        "La jointure relie chaque membre à ses emprunts, GROUP BY + COUNT(*) compte par membre, et ORDER BY nb DESC, name classe les plus actifs d'abord. Alice (2) devance Bruno, Chloé et Emma (1 chacun).",
+    },
+  },
 ];
 
 const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]));
