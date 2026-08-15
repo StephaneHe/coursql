@@ -19,12 +19,20 @@ CREATE TABLE IF NOT EXISTS books (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
--- Small but revealing dataset: a NULL author and a near-duplicate row (2 vs 4).
+-- Revealing dataset (DESIGN §12.6.a "data reveals the concept"):
+--  - row 3 has a NULL author (IS NULL / IS NOT NULL).
+--  - rows 2 and 4 are identical + author 'Antoine de Saint-Exupéry' appears 3x (2,4,6) -> DISTINCT.
+--  - that author also has a 1931 book (row 6), so 'author = ASE' is NOT equivalent to 'year = 1943'
+--    -> AND vs OR give different results.
+--  - year 1943 exists (rows 2,4) so '< 1943' excludes them but '<= 1943' includes them.
+--  - years 1875 and 1931 exist on the BETWEEN bounds -> inclusive bounds matter.
 INSERT INTO books (id, title, author, year) VALUES
   (1, 'Les Misérables',   'Victor Hugo',                1862),
   (2, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943),
   (3, 'Contes',           NULL,                         1875),
-  (4, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943);
+  (4, 'Le Petit Prince',  'Antoine de Saint-Exupéry',   1943),
+  (5, 'Germinal',         'Émile Zola',                 1885),
+  (6, 'Vol de Nuit',      'Antoine de Saint-Exupéry',   1931);
 
 -- Second table for variety (NULL city, duplicate city 'Paris' for later DISTINCT/IN cards).
 CREATE TABLE IF NOT EXISTS members (

@@ -646,7 +646,12 @@ Principes à respecter pour **toute** carte, présents et futurs (C1→C50) :
 3. **Format `quiz`** uniquement quand il est **plus adapté** qu'écrire du SQL (notions conceptuelles : ce qu'est une table, un type, une clé). Sinon `sql`.
 4. **Zone prérequis** renseignée (`prerequisites`, informative, non bloquante, §12.2.a).
 5. **Indices progressifs** (du plus doux au plus précis) + **solution** masquée + **explication** courte. Gating **bienveillant** (essais illimités).
-6. **Données révélatrices** : chaque seed illustre les pièges de la notion (NULL, doublons, égalités limites, chaînes proches).
+6. **Données révélatrices (« les données révèlent le concept »)** — *règle forte* (brief §3 « valeurs limites ») : le seed d'un exercice **doit contenir le cas-limite** qui rend la notion testée **significative**, de sorte qu'une **variante plausible mais fausse produise un résultat DIFFÉRENT** de la solution correcte. Sans ce cas-limite, l'exercice « valide » sans rien prouver.
+   - **Comparaisons `<` vs `<=`** : une ligne **pile sur la borne** (ex. un livre en 1943 quand on filtre `< 1943`) — sinon strict et non-strict donnent le même résultat *(défaut corrigé sur C8)*.
+   - **`AND` vs `OR`** : colonnes **décorrélées** (ex. un auteur qui a AUSSI un livre hors de l'année testée) — sinon `AND` et `OR` coïncident *(défaut corrigé sur C9 : ajout d'un livre de Saint-Exupéry en 1931)*.
+   - **`BETWEEN`** : des valeurs **exactement sur les bornes** (bornes incluses) — sinon indistinguable d'un intervalle strict.
+   - **`IS NULL`** : au moins un `NULL` réel ; **`DISTINCT`** : de vrais doublons ; **`LEFT JOIN`** : des lignes non appariées ; **`ORDER BY`** : des égalités qui justifient une 2ᵉ clé de tri.
+   - **Vérification** : pour chaque carte SELECT, contrôler (au moins en test manuel/CI) que `expected(solution) ≠ résultat(variante à un opérateur/erreur près)`. Un test d'authoring peut exécuter la solution et une variante contre le seed et **exiger des résultats différents**.
 
 ---
 

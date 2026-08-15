@@ -2,9 +2,12 @@
 // (SELECT, FROM, NULL, INT...) kept in English. Solutions/expected results NEVER leave the
 // server before the dedicated routes.
 //
-// AUTHORING RULE (DESIGN §12.6.a): a card's gating exercise must NOT have the same query as
-// the on-card EXAMPLE. The example illustrates the concept; the exercise asks a *variation*
-// so the learner applies the concept instead of copy-pasting the example.
+// AUTHORING RULES (DESIGN §12.6.a):
+//  - A card's gating exercise must NOT have the same query as the on-card EXAMPLE.
+//  - The seed data must contain the boundary/edge case that makes the tested concept
+//    SIGNIFICANT, so a plausible-but-wrong variant yields a DIFFERENT result
+//    (e.g. a row exactly on the limit for < vs <=; decorrelated columns for AND vs OR;
+//    duplicates for DISTINCT; NULL for IS NULL; etc.).
 
 export interface TableColumn { name: string; type: string; pk?: boolean; fk?: string; note?: string; }
 export interface TableSchema { name: string; columns: TableColumn[]; sampleRows?: (string | number | null)[][]; }
@@ -47,6 +50,11 @@ export interface Card {
 }
 
 // Shared read-only seed database "library" (seed_books_v1): two tables, books + members.
+// Data is crafted so each concept is revealed by an edge case:
+//  - NULL author (row 3) for IS NULL / IS NOT NULL.
+//  - Duplicate rows (2 == 4) and author "Antoine de Saint-Exupéry" x3 (2,4,6) for DISTINCT.
+//  - author NOT equivalent to year 1943 (row 6 is that author but year 1931) so AND != OR.
+//  - year 1943 exists (rows 2,4) so "< 1943" excludes it but "<= 1943" includes it.
 const BOOKS_TABLE: TableSchema = {
   name: 'books',
   columns: [
@@ -60,6 +68,8 @@ const BOOKS_TABLE: TableSchema = {
     [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
     [3, 'Contes', null, 1875],
     [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+    [5, 'Germinal', 'Émile Zola', 1885],
+    [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
   ],
 };
 
@@ -223,6 +233,8 @@ const CARDS: Card[] = [
           ['Le Petit Prince', 1943],
           ['Contes', 1875],
           ['Le Petit Prince', 1943],
+          ['Germinal', 1885],
+          ['Vol de Nuit', 1931],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: true },
@@ -252,10 +264,10 @@ const CARDS: Card[] = [
       solutionSql: 'SELECT year AS annee FROM books;',
       expected: {
         columns: ['annee'],
-        rows: [[1862], [1943], [1875], [1943]],
+        rows: [[1862], [1943], [1875], [1943], [1885], [1931]],
       },
       compare: { orderSensitive: false, compareColumnNames: true },
-      hints: ['Utilise AS pour donner un nouveau nom.', "Renomme year, pas title.", "L'étiquette voulue est annee."],
+      hints: ['Utilise AS pour donner un nouveau nom.', 'Renomme year, pas title.', "L'étiquette voulue est annee."],
       explanationFr: "SELECT year AS annee affiche la colonne year sous le nom annee. L'alias est le nom vérifié ici.",
     },
   },
@@ -298,26 +310,28 @@ const CARDS: Card[] = [
     prerequisites: ['C7'],
     explanationFr:
       "En plus de =, on compare avec < (inférieur), > (supérieur), <= , >= et <> (différent). " +
-      "Ces opérateurs marchent surtout sur les nombres et les dates.",
+      "Attention à la borne : < est STRICT (exclut la valeur), <= l'inclut. Ici deux livres sont pile en 1943.",
     exampleSql: 'SELECT * FROM books WHERE year >= 1900;',
-    exampleResultFr: "L'exemple garde les livres publiés à partir de 1900.",
-    statementFr: "Affiche les livres publiés AVANT 1900 (année strictement inférieure à 1900).",
+    exampleResultFr: "L'exemple garde les livres publiés à partir de 1900 (1900 inclus).",
+    statementFr: "Affiche les livres publiés AVANT 1943 (année strictement inférieure à 1943) — les livres de 1943 doivent être EXCLUS.",
     tables: [BOOKS_TABLE],
     gatingExerciseSlug: 'gate-c8-comparison',
     gating: {
       kind: 'sql',
       seedDb: SEED,
-      solutionSql: 'SELECT * FROM books WHERE year < 1900;',
+      solutionSql: 'SELECT * FROM books WHERE year < 1943;',
       expected: {
         columns: ['id', 'title', 'author', 'year'],
         rows: [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [3, 'Contes', null, 1875],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
-      hints: ['« Avant 1900 » se traduit par plus petit que.', "L'opérateur est <.", 'Compare la colonne year à 1900.'],
-      explanationFr: "WHERE year < 1900 garde les années strictement inférieures à 1900 (ici 1862 et 1875).",
+      hints: ['« Avant 1943 » = plus petit que 1943.', "L'opérateur est <.", 'Attention : < est strict, il exclut les livres de 1943.'],
+      explanationFr: "WHERE year < 1943 est STRICT : il exclut les deux livres de 1943. Avec <= 1943 tu les aurais gardés — c'est toute la différence.",
     },
   },
   {
@@ -329,10 +343,11 @@ const CARDS: Card[] = [
     conceptSlug: 'and',
     prerequisites: ['C7', 'C8'],
     explanationFr:
-      "AND combine deux conditions : une ligne n'est gardée que si les DEUX sont vraies en même temps.",
+      "AND combine deux conditions : une ligne n'est gardée que si les DEUX sont vraies en même temps. " +
+      "Ici un livre de Saint-Exupéry date de 1931 : avec AND il sera écarté, alors qu'avec OR il serait gardé.",
     exampleSql: 'SELECT * FROM books WHERE year > 1800 AND year < 1900;',
-    exampleResultFr: "L'exemple garde les livres du 19e siècle (après 1800 et avant 1900).",
-    statementFr: "Affiche les livres dont l'auteur est 'Antoine de Saint-Exupéry' ET l'année est 1943.",
+    exampleResultFr: "L'exemple garde les livres publiés entre 1801 et 1899.",
+    statementFr: "Affiche les livres qui sont À LA FOIS de 'Antoine de Saint-Exupéry' ET publiés en 1943.",
     tables: [BOOKS_TABLE],
     gatingExerciseSlug: 'gate-c9-and',
     gating: {
@@ -347,8 +362,8 @@ const CARDS: Card[] = [
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
-      hints: ['Deux conditions reliées par AND.', 'Teste author ET year.', "N'oublie pas les apostrophes pour le texte."],
-      explanationFr: "Les deux conditions doivent être vraies : l'auteur ET l'année. Deux livres correspondent.",
+      hints: ['Deux conditions reliées par AND.', 'Teste author ET year.', "Le livre de 1931 ne doit PAS apparaître (AND exclut, OR l'aurait gardé)."],
+      explanationFr: "Les DEUX conditions doivent être vraies : l'auteur ET l'année 1943. Le livre de 1931 du même auteur est écarté (avec OR il serait apparu).",
     },
   },
   {
@@ -376,11 +391,12 @@ const CARDS: Card[] = [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
           [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
-      hints: ['Une condition OU l\'autre : OR.', 'Teste year = 1862 OR author = ...', 'Trois livres correspondent.'],
-      explanationFr: "OR garde les lignes qui satisfont au moins une condition : l'année 1862 ou cet auteur.",
+      hints: ["Une condition OU l'autre : OR.", 'Teste year = 1862 OR author = ...', 'Les trois livres de Saint-Exupéry comptent (même celui de 1931).'],
+      explanationFr: "OR garde les lignes qui satisfont au moins une condition : l'année 1862 ou cet auteur (ses 3 livres, y compris celui de 1931).",
     },
   },
   {
@@ -408,11 +424,13 @@ const CARDS: Card[] = [
         rows: [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [3, 'Contes', null, 1875],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
-      hints: ['« Pas 1943 » = NOT year = 1943.', 'Tu peux aussi écrire year <> 1943.', 'Deux livres restent.'],
-      explanationFr: "NOT year = 1943 inverse la condition et garde les livres d'une autre année (1862 et 1875).",
+      hints: ['« Pas 1943 » = NOT year = 1943.', 'Tu peux aussi écrire year <> 1943.', 'Les deux livres de 1943 doivent disparaître.'],
+      explanationFr: "NOT year = 1943 inverse la condition et garde les livres d'une autre année (quatre livres restent).",
     },
   },
   {
@@ -472,11 +490,244 @@ const CARDS: Card[] = [
           [1, 'Les Misérables', 'Victor Hugo', 1862],
           [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
           [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
         ],
       },
       compare: { orderSensitive: false, compareColumnNames: false },
       hints: ['« Renseigné » = a une valeur.', 'Utilise IS NOT NULL.', 'La colonne à tester est author.'],
       explanationFr: "WHERE author IS NOT NULL garde les livres qui ont un auteur (on écarte celui dont l'auteur est NULL).",
+    },
+  },
+  {
+    slug: 'C14',
+    moduleSlug: 'M6',
+    moduleTitle: 'Filtres pratiques',
+    position: 14,
+    title: 'IN (une liste de valeurs)',
+    conceptSlug: 'in-list',
+    prerequisites: ['C7', 'C10'],
+    explanationFr:
+      "IN teste si une valeur fait partie d'une liste : colonne IN (v1, v2, v3). " +
+      "C'est un raccourci pratique pour plusieurs OR sur la même colonne.",
+    exampleSql: "SELECT * FROM members WHERE city IN ('Paris', 'Lyon');",
+    exampleResultFr: "L'exemple garde les membres de Paris ou de Lyon.",
+    statementFr: "Affiche les livres dont l'année est 1862, 1885 ou 1931 (utilise IN).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c14-in',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT * FROM books WHERE year IN (1862, 1885, 1931);',
+      expected: {
+        columns: ['id', 'title', 'author', 'year'],
+        rows: [
+          [1, 'Les Misérables', 'Victor Hugo', 1862],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise IN suivi d une liste entre parenthèses.', 'La colonne est year.', 'Sépare les valeurs par des virgules : (1862, 1885, 1931).'],
+      explanationFr: "year IN (1862, 1885, 1931) garde les livres dont l'année est l'une de ces trois valeurs.",
+    },
+  },
+  {
+    slug: 'C15',
+    moduleSlug: 'M6',
+    moduleTitle: 'Filtres pratiques',
+    position: 15,
+    title: 'BETWEEN (un intervalle)',
+    conceptSlug: 'between',
+    prerequisites: ['C8'],
+    explanationFr:
+      "BETWEEN a AND b garde les valeurs comprises dans l'intervalle, BORNES INCLUSES. " +
+      "Ici 1875 et 1931 existent pile aux bornes : BETWEEN les inclut (contrairement à un intervalle strict).",
+    exampleSql: "SELECT * FROM members WHERE joined BETWEEN '2022-01-01' AND '2022-12-31';",
+    exampleResultFr: "L'exemple garde les membres inscrits pendant l'année 2022.",
+    statementFr: "Affiche les livres publiés entre 1875 et 1931 INCLUS (utilise BETWEEN).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c15-between',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT * FROM books WHERE year BETWEEN 1875 AND 1931;',
+      expected: {
+        columns: ['id', 'title', 'author', 'year'],
+        rows: [
+          [3, 'Contes', null, 1875],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise BETWEEN 1875 AND 1931.', 'Les bornes 1875 et 1931 sont INCLUSES.', 'La colonne est year.'],
+      explanationFr: "year BETWEEN 1875 AND 1931 inclut les bornes : les livres de 1875 et de 1931 sont gardés, en plus de 1885.",
+    },
+  },
+  {
+    slug: 'C16',
+    moduleSlug: 'M6',
+    moduleTitle: 'Filtres pratiques',
+    position: 16,
+    title: 'LIKE (motif de texte)',
+    conceptSlug: 'like',
+    prerequisites: ['C7'],
+    explanationFr:
+      "LIKE cherche un motif dans du texte. Le caractère % remplace n'importe quelle suite de caractères " +
+      "(y compris vide), et _ remplace exactement un caractère. Exemple : 'Le%' = « commence par Le ».",
+    exampleSql: "SELECT * FROM books WHERE title LIKE 'Le%';",
+    exampleResultFr: "L'exemple garde les titres qui commencent par « Le ».",
+    statementFr: "Affiche les livres dont le titre se TERMINE par la lettre « s » (utilise LIKE).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c16-like',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: "SELECT * FROM books WHERE title LIKE '%s';",
+      expected: {
+        columns: ['id', 'title', 'author', 'year'],
+        rows: [
+          [1, 'Les Misérables', 'Victor Hugo', 1862],
+          [3, 'Contes', null, 1875],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise LIKE avec le caractère %.', '« se termine par s » = le motif %s.', 'Le % remplace tout ce qui précède le s final.'],
+      explanationFr: "title LIKE '%s' garde les titres finissant par s : « Les Misérables » et « Contes ».",
+    },
+  },
+  {
+    slug: 'C17',
+    moduleSlug: 'M7',
+    moduleTitle: 'Trier et limiter',
+    position: 17,
+    title: 'ORDER BY',
+    conceptSlug: 'order-by',
+    prerequisites: ['C4', 'C5'],
+    explanationFr:
+      "Sans tri, l'ordre des lignes n'est pas garanti. ORDER BY colonne trie le résultat (croissant par défaut). " +
+      "Ici l'ordre du résultat compte : il sera vérifié.",
+    exampleSql: 'SELECT * FROM members ORDER BY name;',
+    exampleResultFr: "L'exemple trie les membres par nom, de A à Z.",
+    statementFr: "Affiche tous les membres triés par date d'inscription (joined) croissante, du plus ancien au plus récent.",
+    tables: [MEMBERS_TABLE],
+    gatingExerciseSlug: 'gate-c17-order-by',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT * FROM members ORDER BY joined;',
+      expected: {
+        columns: ['id', 'name', 'city', 'joined'],
+        rows: [
+          [1, 'Alice', 'Paris', '2021-03-01'],
+          [3, 'Chloé', 'Lyon', '2021-11-20'],
+          [5, 'Emma', 'Paris', '2022-05-30'],
+          [2, 'Bruno', null, '2022-07-15'],
+          [4, 'David', null, '2023-01-05'],
+        ],
+      },
+      compare: { orderSensitive: true, compareColumnNames: false },
+      hints: ['Utilise ORDER BY.', 'Trie sur la colonne joined.', 'Croissant = du plus ancien au plus récent (ordre par défaut).'],
+      explanationFr: "ORDER BY joined classe les membres par date d'inscription croissante. L'ordre des lignes est vérifié ici.",
+    },
+  },
+  {
+    slug: 'C18',
+    moduleSlug: 'M7',
+    moduleTitle: 'Trier et limiter',
+    position: 18,
+    title: 'ORDER BY DESC et deuxième clé',
+    conceptSlug: 'order-by-desc',
+    prerequisites: ['C17'],
+    explanationFr:
+      "DESC trie en décroissant. En cas d'égalité, on ajoute une deuxième colonne de tri pour départager " +
+      "(ORDER BY colonne1 DESC, colonne2). Ici deux livres ont la même année 1943 : le id les départage.",
+    exampleSql: 'SELECT * FROM members ORDER BY city;',
+    exampleResultFr: "L'exemple trie les membres par ville (croissant).",
+    statementFr: "Affiche les livres triés par année DÉCROISSANTE, puis par id CROISSANT en cas d'égalité (ORDER BY year DESC, id).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c18-order-desc',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT * FROM books ORDER BY year DESC, id;',
+      expected: {
+        columns: ['id', 'title', 'author', 'year'],
+        rows: [
+          [2, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [4, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 1943],
+          [6, 'Vol de Nuit', 'Antoine de Saint-Exupéry', 1931],
+          [5, 'Germinal', 'Émile Zola', 1885],
+          [3, 'Contes', null, 1875],
+          [1, 'Les Misérables', 'Victor Hugo', 1862],
+        ],
+      },
+      compare: { orderSensitive: true, compareColumnNames: false },
+      hints: ['Décroissant = DESC après la colonne.', 'Trie d abord par year DESC.', 'Ajoute , id pour départager les deux livres de 1943.'],
+      explanationFr: "ORDER BY year DESC, id trie par année décroissante ; les deux livres de 1943 sont départagés par id croissant.",
+    },
+  },
+  {
+    slug: 'C19',
+    moduleSlug: 'M7',
+    moduleTitle: 'Trier et limiter',
+    position: 19,
+    title: 'LIMIT',
+    conceptSlug: 'limit',
+    prerequisites: ['C17'],
+    explanationFr:
+      "LIMIT n ne garde que les n premières lignes du résultat. On l'utilise presque toujours avec ORDER BY, " +
+      "sinon « les premières » n'a pas de sens précis.",
+    exampleSql: 'SELECT * FROM members ORDER BY joined LIMIT 2;',
+    exampleResultFr: "L'exemple garde les 2 membres inscrits le plus tôt.",
+    statementFr: "Affiche les 3 livres les plus anciens : trie par année croissante (puis id croissant) et limite à 3 résultats.",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c19-limit',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT * FROM books ORDER BY year, id LIMIT 3;',
+      expected: {
+        columns: ['id', 'title', 'author', 'year'],
+        rows: [
+          [1, 'Les Misérables', 'Victor Hugo', 1862],
+          [3, 'Contes', null, 1875],
+          [5, 'Germinal', 'Émile Zola', 1885],
+        ],
+      },
+      compare: { orderSensitive: true, compareColumnNames: false },
+      hints: ['Trie par year croissant, puis ajoute LIMIT 3.', 'Ajoute , id pour un ordre stable.', 'LIMIT se place à la fin de la requête.'],
+      explanationFr: "ORDER BY year, id LIMIT 3 garde les 3 livres les plus anciens (1862, 1875, 1885).",
+    },
+  },
+  {
+    slug: 'C20',
+    moduleSlug: 'M7',
+    moduleTitle: 'Trier et limiter',
+    position: 20,
+    title: 'DISTINCT (sans doublon)',
+    conceptSlug: 'distinct',
+    prerequisites: ['C5'],
+    explanationFr:
+      "DISTINCT supprime les doublons du résultat. Ici l'auteur « Antoine de Saint-Exupéry » apparaît sur " +
+      "trois livres : sans DISTINCT il sortirait trois fois, avec DISTINCT une seule.",
+    exampleSql: 'SELECT DISTINCT city FROM members;',
+    exampleResultFr: "L'exemple liste les villes des membres, chaque ville une seule fois.",
+    statementFr: "Affiche la liste des auteurs (author) SANS DOUBLON (utilise DISTINCT).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c20-distinct',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT DISTINCT author FROM books;',
+      expected: {
+        columns: ['author'],
+        rows: [['Victor Hugo'], ['Antoine de Saint-Exupéry'], [null], ['Émile Zola']],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Ajoute DISTINCT juste après SELECT.', 'Sélectionne seulement la colonne author.', "Chaque auteur n'apparaît qu'une fois (NULL compris)."],
+      explanationFr: "SELECT DISTINCT author supprime les répétitions : Saint-Exupéry n'apparaît qu'une fois, et NULL compte comme une valeur.",
     },
   },
 ];

@@ -3,6 +3,18 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.5.0] - 2026-08-15
+
+### Fixed
+- **Défaut pédagogique « données révèlent le concept »** :
+  - **C8** (comparaisons) : aucune ligne n'était pile sur la borne, donc `<` et `<=` donnaient le même résultat. Reformulé sur la borne **1943** (deux livres pile en 1943) → `< 1943` les EXCLUT, `<= 1943` les inclut. Vérifié via l'API : la variante `<= 1943` échoue (résultat distinct).
+  - **C9** (`AND`) : dans les données, `author = Saint-Exupéry` était équivalent à `year = 1943`, donc `AND` et `OR` coïncidaient. Ajout d'un livre de Saint-Exupéry en **1931** (décorrélation) → `AND` ≠ `OR`. Vérifié : la variante `OR` échoue.
+
+### Added
+- **Table `books` enrichie** (6 livres : + Germinal/Émile Zola/1885, + Vol de Nuit/Saint-Exupéry/1931) pour révéler bornes, décorrélation, doublons d'auteur.
+- **Cartes C14→C20** : C14 `IN`, C15 `BETWEEN` (bornes incluses), C16 `LIKE`, C17 `ORDER BY`, C18 `ORDER BY DESC` + 2ᵉ clé, C19 `LIMIT`, C20 `DISTINCT`. Modules M6 (Filtres pratiques) et M7 (Trier et limiter). Chaque carte : exercice ≠ exemple, données révélatrices, validation par résultat.
+- **Principe d'authoring « les données révèlent le concept »** documenté dans `docs/DESIGN.md` §12.6.a (cas-limite obligatoire : borne pour `<`/`BETWEEN`, décorrélation pour `AND`/`OR`, doublons pour `DISTINCT`, NULL, non-appariés pour LEFT JOIN…).
+
 ## [1.4.0] - 2026-08-15
 
 ### Added

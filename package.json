@@ -1,6 +1,6 @@
 {
   "name": "courssql",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "coursSQL — interactive web app to learn SQL progressively (MySQL 8.4 LTS). French pedagogy, English code.",
   "license": "UNLICENSED",
