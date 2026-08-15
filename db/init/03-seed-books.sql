@@ -49,3 +49,53 @@ INSERT INTO members (id, name, city, joined) VALUES
   (3, 'Chloé', 'Lyon',  '2021-11-20'),
   (4, 'David', NULL,    '2023-01-05'),
   (5, 'Emma',  'Paris', '2022-05-30');
+
+-- Loans link members and books (INNER/LEFT JOIN, aggregates, subqueries, EXISTS).
+-- Revealing: David (member 4) has NO loan (LEFT JOIN unmatched / NOT EXISTS);
+-- books 3,4,6 are never loaned; Alice has 2 loans (GROUP BY count > 1).
+CREATE TABLE IF NOT EXISTS loans (
+  id        INT  NOT NULL,
+  member_id INT  NOT NULL,
+  book_id   INT  NOT NULL,
+  loan_date DATE NOT NULL,
+  returned  TINYINT(1) NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_loans_member (member_id),
+  KEY idx_loans_book (book_id)
+) ENGINE=InnoDB;
+
+INSERT INTO loans (id, member_id, book_id, loan_date, returned) VALUES
+  (1, 1, 1, '2023-01-10', 1),
+  (2, 1, 2, '2023-02-15', 0),
+  (3, 2, 2, '2023-03-01', 1),
+  (4, 3, 5, '2023-03-20', 0),
+  (5, 5, 1, '2023-04-05', 1);
+
+-- Fines carry a DECIMAL amount (SUM/AVG exact, no float rounding).
+CREATE TABLE IF NOT EXISTS fines (
+  id        INT NOT NULL,
+  member_id INT NOT NULL,
+  amount    DECIMAL(6,2) NOT NULL,
+  paid      TINYINT(1) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+INSERT INTO fines (id, member_id, amount, paid) VALUES
+  (1, 1, 5.50, 1),
+  (2, 1, 2.00, 0),
+  (3, 3, 10.00, 0),
+  (4, 2, 3.25, 1);
+
+-- Employees reference themselves via manager_id (self-join). Diane has no manager (NULL).
+CREATE TABLE IF NOT EXISTS employees (
+  id         INT NOT NULL,
+  name       VARCHAR(60) NOT NULL,
+  manager_id INT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+INSERT INTO employees (id, name, manager_id) VALUES
+  (1, 'Diane', NULL),
+  (2, 'Karim', 1),
+  (3, 'Léa',   1),
+  (4, 'Tom',   2);

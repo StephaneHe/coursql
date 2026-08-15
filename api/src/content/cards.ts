@@ -90,6 +90,55 @@ const MEMBERS_TABLE: TableSchema = {
   ],
 };
 
+const LOANS_TABLE: TableSchema = {
+  name: 'loans',
+  columns: [
+    { name: 'id', type: 'INT', pk: true },
+    { name: 'member_id', type: 'INT', fk: 'members.id' },
+    { name: 'book_id', type: 'INT', fk: 'books.id' },
+    { name: 'loan_date', type: 'DATE' },
+    { name: 'returned', type: 'TINYINT(1)', note: '0 = non rendu, 1 = rendu' },
+  ],
+  sampleRows: [
+    [1, 1, 1, '2023-01-10', 1],
+    [2, 1, 2, '2023-02-15', 0],
+    [3, 2, 2, '2023-03-01', 1],
+    [4, 3, 5, '2023-03-20', 0],
+    [5, 5, 1, '2023-04-05', 1],
+  ],
+};
+
+const FINES_TABLE: TableSchema = {
+  name: 'fines',
+  columns: [
+    { name: 'id', type: 'INT', pk: true },
+    { name: 'member_id', type: 'INT', fk: 'members.id' },
+    { name: 'amount', type: 'DECIMAL(6,2)' },
+    { name: 'paid', type: 'TINYINT(1)' },
+  ],
+  sampleRows: [
+    [1, 1, '5.50', 1],
+    [2, 1, '2.00', 0],
+    [3, 3, '10.00', 0],
+    [4, 2, '3.25', 1],
+  ],
+};
+
+const EMPLOYEES_TABLE: TableSchema = {
+  name: 'employees',
+  columns: [
+    { name: 'id', type: 'INT', pk: true },
+    { name: 'name', type: 'VARCHAR(60)' },
+    { name: 'manager_id', type: 'INT', fk: 'employees.id', note: 'NULL si pas de chef' },
+  ],
+  sampleRows: [
+    [1, 'Diane', null],
+    [2, 'Karim', 1],
+    [3, 'Léa', 1],
+    [4, 'Tom', 2],
+  ],
+};
+
 const SEED = 'seed_books_v1';
 
 const CARDS: Card[] = [
@@ -864,6 +913,147 @@ const CARDS: Card[] = [
       compare: { orderSensitive: false, compareColumnNames: false },
       hints: ['Structure : CASE WHEN year < 1900 THEN ... ELSE ... END.', "Les étiquettes sont 'XIXe' et 'XXe'.", "N'oublie pas END (et l'alias AS siecle)."],
       explanationFr: "CASE teste year < 1900 : si vrai « XIXe », sinon « XXe ». Chaque ligne reçoit son siècle.",
+    },
+  },
+  {
+    slug: 'C25',
+    moduleSlug: 'M9',
+    moduleTitle: 'Agréger',
+    position: 25,
+    title: 'COUNT (compter)',
+    conceptSlug: 'count',
+    prerequisites: ['C7'],
+    explanationFr:
+      "COUNT compte des lignes. COUNT(*) compte toutes les lignes ; COUNT(colonne) ne compte que les lignes " +
+      "où la colonne n'est PAS NULL. La différence se voit dès qu'il y a des valeurs manquantes.",
+    exampleSql: 'SELECT COUNT(*) FROM members;',
+    exampleResultFr: "L'exemple compte le nombre total de membres.",
+    statementFr: "Combien de livres ont un auteur RENSEIGNÉ ? Compte les auteurs non NULL (COUNT(author)).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c25-count',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT COUNT(author) FROM books;',
+      expected: { columns: ['COUNT(author)'], rows: [[5]] },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise COUNT.', 'COUNT(author) ignore les valeurs NULL.', 'COUNT(*) donnerait 6 ; ici on veut 5.'],
+      explanationFr: "COUNT(author) = 5 car le livre sans auteur (NULL) n'est pas compté ; COUNT(*) aurait donné 6.",
+    },
+  },
+  {
+    slug: 'C26',
+    moduleSlug: 'M9',
+    moduleTitle: 'Agréger',
+    position: 26,
+    title: 'SUM et AVG',
+    conceptSlug: 'sum-avg',
+    prerequisites: ['C25'],
+    explanationFr:
+      "SUM(colonne) additionne des nombres ; AVG(colonne) en donne la moyenne. On les utilise sur des colonnes " +
+      "numériques (ici des montants DECIMAL, calculés de façon exacte).",
+    exampleSql: 'SELECT AVG(amount) FROM fines;',
+    exampleResultFr: "L'exemple donne le montant moyen des amendes.",
+    statementFr: "Calcule le montant TOTAL des amendes (SUM de amount) de la table fines.",
+    tables: [FINES_TABLE],
+    gatingExerciseSlug: 'gate-c26-sum',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT SUM(amount) FROM fines;',
+      expected: { columns: ['SUM(amount)'], rows: [['20.75']] },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise SUM sur la colonne amount.', 'SUM additionne toutes les valeurs.', 'Le total attendu est 20.75.'],
+      explanationFr: "SUM(amount) additionne 5.50 + 2.00 + 10.00 + 3.25 = 20.75 (calcul exact en DECIMAL).",
+    },
+  },
+  {
+    slug: 'C27',
+    moduleSlug: 'M9',
+    moduleTitle: 'Agréger',
+    position: 27,
+    title: 'MIN et MAX',
+    conceptSlug: 'min-max',
+    prerequisites: ['C25'],
+    explanationFr:
+      "MIN(colonne) donne la plus petite valeur, MAX(colonne) la plus grande. Utile pour trouver un extrême " +
+      "(la plus vieille année, le plus gros montant…).",
+    exampleSql: 'SELECT MAX(year) FROM books;',
+    exampleResultFr: "L'exemple donne l'année du livre le plus récent.",
+    statementFr: "Quelle est l'année du livre le PLUS ANCIEN ? (MIN de year)",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c27-min',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT MIN(year) FROM books;',
+      expected: { columns: ['MIN(year)'], rows: [[1862]] },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['« Le plus ancien » = la plus petite année.', 'Utilise MIN sur la colonne year.', 'La réponse attendue est 1862.'],
+      explanationFr: "MIN(year) renvoie la plus petite année, ici 1862 (Les Misérables).",
+    },
+  },
+  {
+    slug: 'C28',
+    moduleSlug: 'M10',
+    moduleTitle: 'Regrouper',
+    position: 28,
+    title: 'GROUP BY',
+    conceptSlug: 'group-by',
+    prerequisites: ['C25'],
+    explanationFr:
+      "GROUP BY regroupe les lignes qui partagent une même valeur, puis applique une agrégation (COUNT, SUM…) " +
+      "à chaque groupe. On obtient une ligne par groupe.",
+    exampleSql: 'SELECT city, COUNT(*) FROM members GROUP BY city;',
+    exampleResultFr: "L'exemple compte les membres par ville.",
+    statementFr: "Pour chaque auteur, affiche l'auteur et le NOMBRE de ses livres (GROUP BY author).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c28-group-by',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT author, COUNT(*) FROM books GROUP BY author;',
+      expected: {
+        columns: ['author', 'COUNT(*)'],
+        rows: [
+          ['Victor Hugo', 1],
+          ['Antoine de Saint-Exupéry', 3],
+          [null, 1],
+          ['Émile Zola', 1],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Regroupe avec GROUP BY author.', 'Compte chaque groupe avec COUNT(*).', 'Saint-Exupéry a 3 livres, les autres 1.'],
+      explanationFr: "GROUP BY author fait un groupe par auteur ; COUNT(*) compte les livres de chacun (Saint-Exupéry = 3).",
+    },
+  },
+  {
+    slug: 'C29',
+    moduleSlug: 'M10',
+    moduleTitle: 'Regrouper',
+    position: 29,
+    title: 'HAVING (filtrer les groupes)',
+    conceptSlug: 'having',
+    prerequisites: ['C28'],
+    explanationFr:
+      "HAVING filtre les GROUPES après un GROUP BY (alors que WHERE filtre les lignes avant le regroupement). " +
+      "On l'utilise pour ne garder que les groupes qui respectent une condition sur l'agrégat.",
+    exampleSql: 'SELECT city, COUNT(*) FROM members GROUP BY city HAVING COUNT(*) >= 2;',
+    exampleResultFr: "L'exemple ne garde que les villes ayant au moins 2 membres.",
+    statementFr: "Affiche les auteurs qui ont PLUS D'UN livre : l'auteur et son nombre de livres (GROUP BY + HAVING COUNT(*) > 1).",
+    tables: [BOOKS_TABLE],
+    gatingExerciseSlug: 'gate-c29-having',
+    gating: {
+      kind: 'sql',
+      seedDb: SEED,
+      solutionSql: 'SELECT author, COUNT(*) FROM books GROUP BY author HAVING COUNT(*) > 1;',
+      expected: {
+        columns: ['author', 'COUNT(*)'],
+        rows: [['Antoine de Saint-Exupéry', 3]],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Commence par GROUP BY author.', 'Filtre les groupes avec HAVING COUNT(*) > 1.', "WHERE ne marche pas sur un agrégat : il faut HAVING."],
+      explanationFr: "HAVING COUNT(*) > 1 ne garde que les groupes de plus d'un livre : seul Saint-Exupéry (3).",
     },
   },
 ];
