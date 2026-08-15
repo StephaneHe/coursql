@@ -1,0 +1,8 @@
+# Keep local build artifacts out of the Docker build context / image layers.
+# (Host node_modules must never be copied into the Linux image.)
+**/node_modules
+**/dist
+**/.env
+.git
+coursql_mysql_data
+*.log
