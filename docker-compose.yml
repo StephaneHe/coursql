@@ -35,6 +35,8 @@ services:
       APP_DB_NAME: coursql_app
       EXEC_DB_USER: coursql_executor
       EXEC_DB_PASSWORD: ${EXEC_DB_PASSWORD:-coursql_exec_pw}
+      PROV_DB_USER: coursql_provisioner
+      PROV_DB_PASSWORD: ${PROV_DB_PASSWORD:-coursql_prov_pw}
       SESSION_SECRET: ${SESSION_SECRET:-dev_session_secret_change_me}
       QUERY_TIMEOUT_MS: "3000"
       MAX_ROWS_RETURNED: "1000"

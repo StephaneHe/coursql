@@ -12,6 +12,8 @@ export const config = {
     appName: process.env.APP_DB_NAME ?? 'coursql_app',
     execUser: process.env.EXEC_DB_USER ?? 'coursql_executor',
     execPassword: process.env.EXEC_DB_PASSWORD ?? 'coursql_exec_pw',
+    provUser: process.env.PROV_DB_USER ?? 'coursql_provisioner',
+    provPassword: process.env.PROV_DB_PASSWORD ?? 'coursql_prov_pw',
   },
   sessionSecret: process.env.SESSION_SECRET ?? 'dev_session_secret_change_me',
   // The session cookie must NOT be Secure when served over plain HTTP (browsers drop Secure

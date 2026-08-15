@@ -31,6 +31,22 @@ export interface SqlGating {
   explanationFr: string;
 }
 
+// Mutating cards (INSERT/UPDATE/DELETE/DDL): run in an isolated per-user work DB, validated on
+// the FINAL STATE via a hidden verification query (never sent to the client).
+export interface MutationGating {
+  kind: 'mutation';
+  permissions: 'dml' | 'ddl';
+  schemaSql: string; // CREATE TABLE(s) for the work DB
+  seedSql: string; // initial rows
+  solutionSql: string; // reference statement (never sent early)
+  verifySql: string; // hidden SELECT run after the learner's statement
+  expected: { columns: string[]; rows: (string | number | null)[][] };
+  compare: { orderSensitive: boolean; compareColumnNames: boolean };
+  allowMultiStatement?: boolean; // transactions need several statements
+  hints: string[];
+  explanationFr: string;
+}
+
 export interface Card {
   slug: string;
   moduleSlug: string;
@@ -45,7 +61,7 @@ export interface Card {
   statementFr: string;
   tables?: TableSchema[];
   gatingExerciseSlug: string;
-  gating: QuizGating | SqlGating;
+  gating: QuizGating | SqlGating | MutationGating;
   practice?: string[]; // optional practice exercises, do not affect progression
 }
 
@@ -1438,6 +1454,148 @@ const CARDS: Card[] = [
       explanationFr: "EXCEPT retire de la liste des id de books ceux qui apparaissent dans loans : restent 3, 4 et 6 (jamais empruntés).",
     },
   },
+  {
+    slug: 'C42',
+    moduleSlug: 'M13',
+    moduleTitle: 'Modifier les données',
+    position: 42,
+    title: 'INSERT (ajouter une ligne)',
+    conceptSlug: 'insert',
+    prerequisites: ['C3'],
+    explanationFr:
+      "INSERT ajoute une ligne dans une table : INSERT INTO table (colonnes) VALUES (valeurs). " +
+      "Tu travailles ici sur TA copie isolée de la table todo : tu peux la modifier sans risque, et la réinitialiser.",
+    exampleSql: "INSERT INTO todo (id, label, done) VALUES (9, 'Ranger le bureau', 0);",
+    exampleResultFr: "L'exemple ajoute une tâche d'identifiant 9.",
+    statementFr: "Ajoute une nouvelle tâche : id = 3, label = 'Faire les courses', done = 0 (INSERT dans todo).",
+    tables: [
+      {
+        name: 'todo',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'label', type: 'VARCHAR(60)' },
+          { name: 'done', type: 'TINYINT(1)', note: '0 = à faire, 1 = fait' },
+        ],
+        sampleRows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 1],
+        ],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c42-insert',
+    gating: {
+      kind: 'mutation',
+      permissions: 'dml',
+      schemaSql: 'CREATE TABLE todo (id INT PRIMARY KEY, label VARCHAR(60) NOT NULL, done TINYINT NOT NULL DEFAULT 0) ENGINE=InnoDB;',
+      seedSql: "INSERT INTO todo (id, label, done) VALUES (1, 'Acheter du pain', 0), (2, 'Lire un livre', 1);",
+      solutionSql: "INSERT INTO todo (id, label, done) VALUES (3, 'Faire les courses', 0);",
+      verifySql: 'SELECT id, label, done FROM todo ORDER BY id;',
+      expected: {
+        columns: ['id', 'label', 'done'],
+        rows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 1],
+          [3, 'Faire les courses', 0],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['Utilise INSERT INTO todo (id, label, done) VALUES (...).', "Les valeurs : 3, 'Faire les courses', 0.", "Le texte va entre apostrophes."],
+      explanationFr: "INSERT ajoute la ligne (3, 'Faire les courses', 0). La table contient alors 3 tâches.",
+    },
+  },
+  {
+    slug: 'C43',
+    moduleSlug: 'M13',
+    moduleTitle: 'Modifier les données',
+    position: 43,
+    title: 'UPDATE (modifier des lignes)',
+    conceptSlug: 'update',
+    prerequisites: ['C7', 'C42'],
+    explanationFr:
+      "UPDATE modifie des lignes existantes : UPDATE table SET colonne = valeur WHERE condition. " +
+      "⚠️ Sans WHERE, TOUTES les lignes sont modifiées ! Le WHERE cible les bonnes lignes.",
+    exampleSql: 'UPDATE todo SET done = 1 WHERE id = 3;',
+    exampleResultFr: "L'exemple marque la tâche 3 comme faite.",
+    statementFr: "Marque la tâche numéro 1 comme faite : mets done = 1 UNIQUEMENT pour id = 1 (UPDATE ... WHERE).",
+    tables: [
+      {
+        name: 'todo',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'label', type: 'VARCHAR(60)' },
+          { name: 'done', type: 'TINYINT(1)' },
+        ],
+        sampleRows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 0],
+          [3, 'Ranger', 0],
+        ],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c43-update',
+    gating: {
+      kind: 'mutation',
+      permissions: 'dml',
+      schemaSql: 'CREATE TABLE todo (id INT PRIMARY KEY, label VARCHAR(60) NOT NULL, done TINYINT NOT NULL DEFAULT 0) ENGINE=InnoDB;',
+      seedSql: "INSERT INTO todo (id, label, done) VALUES (1, 'Acheter du pain', 0), (2, 'Lire un livre', 0), (3, 'Ranger', 0);",
+      solutionSql: 'UPDATE todo SET done = 1 WHERE id = 1;',
+      verifySql: 'SELECT id, done FROM todo ORDER BY id;',
+      expected: {
+        columns: ['id', 'done'],
+        rows: [
+          [1, 1],
+          [2, 0],
+          [3, 0],
+        ],
+      },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['UPDATE todo SET done = 1 ...', "N'oublie pas WHERE id = 1, sinon toutes les tâches passent à faites.", 'Seule la tâche 1 doit changer.'],
+      explanationFr: "UPDATE ... WHERE id = 1 ne modifie que la tâche 1. Sans WHERE, les 3 tâches seraient marquées faites.",
+    },
+  },
+  {
+    slug: 'C44',
+    moduleSlug: 'M13',
+    moduleTitle: 'Modifier les données',
+    position: 44,
+    title: 'DELETE (supprimer des lignes)',
+    conceptSlug: 'delete',
+    prerequisites: ['C43'],
+    explanationFr:
+      "DELETE supprime des lignes : DELETE FROM table WHERE condition. ⚠️ Sans WHERE, TOUTE la table est vidée ! " +
+      "Le WHERE choisit précisément quoi supprimer.",
+    exampleSql: 'DELETE FROM todo WHERE id = 3;',
+    exampleResultFr: "L'exemple supprime la tâche 3.",
+    statementFr: "Supprime UNIQUEMENT la tâche numéro 2 (DELETE ... WHERE id = 2).",
+    tables: [
+      {
+        name: 'todo',
+        columns: [
+          { name: 'id', type: 'INT', pk: true },
+          { name: 'label', type: 'VARCHAR(60)' },
+          { name: 'done', type: 'TINYINT(1)' },
+        ],
+        sampleRows: [
+          [1, 'Acheter du pain', 0],
+          [2, 'Lire un livre', 0],
+          [3, 'Ranger', 0],
+        ],
+      },
+    ],
+    gatingExerciseSlug: 'gate-c44-delete',
+    gating: {
+      kind: 'mutation',
+      permissions: 'dml',
+      schemaSql: 'CREATE TABLE todo (id INT PRIMARY KEY, label VARCHAR(60) NOT NULL, done TINYINT NOT NULL DEFAULT 0) ENGINE=InnoDB;',
+      seedSql: "INSERT INTO todo (id, label, done) VALUES (1, 'Acheter du pain', 0), (2, 'Lire un livre', 0), (3, 'Ranger', 0);",
+      solutionSql: 'DELETE FROM todo WHERE id = 2;',
+      verifySql: 'SELECT id FROM todo ORDER BY id;',
+      expected: { columns: ['id'], rows: [[1], [3]] },
+      compare: { orderSensitive: false, compareColumnNames: false },
+      hints: ['DELETE FROM todo WHERE ...', 'Cible la tâche 2 : WHERE id = 2.', 'Sans WHERE, toute la table serait supprimée !'],
+      explanationFr: "DELETE FROM todo WHERE id = 2 ne supprime que la tâche 2 ; il reste les tâches 1 et 3.",
+    },
+  },
 ];
 
 const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]));
@@ -1446,7 +1604,7 @@ const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]));
 export function assertAuthoringRules(): void {
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').replace(/;+\s*$/, '').toLowerCase();
   for (const c of CARDS) {
-    if (c.gating.kind === 'sql' && c.exampleSql && norm(c.exampleSql) === norm(c.gating.solutionSql)) {
+    if ((c.gating.kind === 'sql' || c.gating.kind === 'mutation') && c.exampleSql && norm(c.exampleSql) === norm(c.gating.solutionSql)) {
       throw new Error(`Authoring rule violated: card ${c.slug} gating solution equals its on-card example.`);
     }
   }
@@ -1473,7 +1631,9 @@ export function toPublicCard(card: Card) {
   const gatingPublic =
     card.gating.kind === 'quiz'
       ? { kind: 'quiz' as const, questionFr: card.gating.questionFr, options: card.gating.options, hintCount: card.gating.hints.length }
-      : { kind: 'sql' as const, hintCount: card.gating.hints.length };
+      : card.gating.kind === 'mutation'
+        ? { kind: 'mutation' as const, hintCount: card.gating.hints.length }
+        : { kind: 'sql' as const, hintCount: card.gating.hints.length };
   return {
     slug: card.slug,
     moduleSlug: card.moduleSlug,

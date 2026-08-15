@@ -27,6 +27,7 @@ import { assertAuthoringRules, getCard, nextCardSlug, orderedCards, toPublicCard
 import { compareResult } from './lib/compare';
 import { mapSqlError } from './lib/sqlErrors';
 import { preflightSql, runReadOnly } from './lib/execute';
+import { resetMutation, runMutation } from './lib/mutate';
 
 const COOKIE = 'coursql_sid';
 
@@ -206,7 +207,66 @@ function buildApp() {
       return;
     }
 
-    // SQL card
+    // Mutating card (INSERT/UPDATE/DELETE/DDL): run in the isolated work DB, validate final state.
+    if (card.gating.kind === 'mutation') {
+      const g = card.gating;
+      const rawSql = String(req.body?.sql ?? '');
+      const trimmed = rawSql.trim();
+      if (!trimmed) {
+        res.status(400).json({ status: 'error', kind: 'mutation', messageFr: "Écris une requête avant d'exécuter." });
+        return;
+      }
+      if (rawSql.length > config.maxSqlLength) {
+        res.status(400).json({ status: 'error', kind: 'mutation', messageFr: `Requête trop longue (maximum ${config.maxSqlLength} caractères).` });
+        return;
+      }
+      let learnerSql = trimmed;
+      if (!g.allowMultiStatement) {
+        const noTrailing = trimmed.replace(/;\s*$/, '');
+        if (noTrailing.includes(';')) {
+          res.status(400).json({ status: 'error', kind: 'mutation', messageFr: 'Une seule instruction SQL à la fois.' });
+          return;
+        }
+        learnerSql = noTrailing;
+      }
+      const started = Date.now();
+      try {
+        const run = await runMutation(req.user!.id, card.slug, {
+          schemaSql: g.schemaSql,
+          seedSql: g.seedSql,
+          permissions: g.permissions,
+          learnerSql,
+          verifySql: g.verifySql,
+          allowMultiStatement: g.allowMultiStatement,
+        });
+        const verdict = compareResult(run.columns, run.rows, g.expected, g.compare);
+        const outcome = verdict.pass ? 'pass' : 'fail';
+        await recordAttempt(req.user!.id, card.slug, card.gatingExerciseSlug, learnerSql, outcome, Date.now() - started, null);
+        let nextSlug: string | null = null;
+        if (verdict.pass) {
+          await validateCard(req.user!.id, card.slug);
+          nextSlug = nextCardSlug(card.slug);
+        }
+        res.json({
+          status: outcome,
+          kind: 'mutation',
+          columns: run.columns,
+          rows: run.rows,
+          messageFr: verdict.pass
+            ? 'Parfait, la table est dans l\'état attendu ! 🎉'
+            : `Pas tout à fait. ${verdict.reasonFr ?? ''} (Voici l\'état obtenu ci-dessous.)`.trim(),
+          card_validated: verdict.pass,
+          next_card_slug: nextSlug,
+        });
+      } catch (err) {
+        const mapped = mapSqlError(err);
+        await recordAttempt(req.user!.id, card.slug, card.gatingExerciseSlug, learnerSql, mapped.outcome, Date.now() - started, mapped.category);
+        res.status(200).json({ status: mapped.outcome, kind: 'mutation', messageFr: mapped.messageFr });
+      }
+      return;
+    }
+
+    // SQL card (read-only against the shared seed)
     const rawSql = String(req.body?.sql ?? '');
     const pre = preflightSql(rawSql);
     if (!pre.ok) {
@@ -247,6 +307,27 @@ function buildApp() {
       // UX requirement: always SHOW a usable, pedagogical error (never the raw MySQL message).
       res.status(200).json({ status: mapped.outcome, kind: 'sql', messageFr: mapped.messageFr });
     }
+  }));
+
+  // --- Reset the isolated work DB (mutating cards); no-op for read-only cards ---
+  app.post('/api/cards/:slug/reset', requireUser, wrap(async (req, res) => {
+    const card = getCard(req.params.slug);
+    if (!card) {
+      res.status(404).json({ error: 'not_found' });
+      return;
+    }
+    const status = await statusOf(req.user!.id, card.slug);
+    if (status === 'locked') {
+      res.status(403).json({ error: 'locked' });
+      return;
+    }
+    if (card.gating.kind !== 'mutation') {
+      res.json({ noop: true });
+      return;
+    }
+    const g = card.gating;
+    await resetMutation(req.user!.id, card.slug, { schemaSql: g.schemaSql, seedSql: g.seedSql, permissions: g.permissions });
+    res.json({ ok: true, messageFr: 'La table a été réinitialisée à son état de départ.' });
   }));
 
   // --- Hints (progressive) ---

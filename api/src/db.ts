@@ -30,9 +30,25 @@ export const executorPool = mysql.createPool({
   waitForConnections: true,
 });
 
+// Provisioner pool: creates/resets per-user work databases (ex_*) for mutating cards.
+// It runs ONLY our versioned schema/seed SQL (never learner SQL), so multipleStatements is
+// enabled to load multi-statement schema/seed files.
+export const provisionerPool = mysql.createPool({
+  host: config.db.host,
+  port: config.db.port,
+  user: config.db.provUser,
+  password: config.db.provPassword,
+  connectionLimit: 4,
+  multipleStatements: true,
+  charset: 'utf8mb4',
+  waitForConnections: true,
+});
+
 export async function pingDatabases(): Promise<void> {
   const c1 = await appPool.getConnection();
   try { await c1.query('SELECT 1'); } finally { c1.release(); }
   const c2 = await executorPool.getConnection();
   try { await c2.query('SELECT 1'); } finally { c2.release(); }
+  const c3 = await provisionerPool.getConnection();
+  try { await c3.query('SELECT 1'); } finally { c3.release(); }
 }
