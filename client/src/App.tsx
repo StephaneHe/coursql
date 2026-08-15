@@ -11,6 +11,7 @@ export function App() {
   const [modules, setModules] = useState<ProgressModule[]>([]);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -28,11 +29,14 @@ export function App() {
 
   useEffect(() => {
     if (!me) return;
-    loadProgress().then((mods) => {
-      const flat = mods.flatMap((m) => m.cards);
-      const firstActive = flat.find((c) => c.status === 'in_progress' || c.status === 'available');
-      setCurrentSlug((cur) => cur ?? firstActive?.slug ?? flat[0]?.slug ?? null);
-    });
+    setLoadError(null);
+    loadProgress()
+      .then((mods) => {
+        const flat = mods.flatMap((m) => m.cards);
+        const firstActive = flat.find((c) => c.status === 'in_progress' || c.status === 'available');
+        setCurrentSlug((cur) => cur ?? firstActive?.slug ?? flat[0]?.slug ?? null);
+      })
+      .catch((e) => setLoadError((e as Error).message));
   }, [me, loadProgress]);
 
   const titleOf = useMemo(() => {
@@ -70,7 +74,12 @@ export function App() {
 
       <div className="app-body">
         <main className="content">
-          {currentSlug ? (
+          {loadError ? (
+            <div className="card-view">
+              <p className="error-text">Impossible de charger ta progression : {loadError}</p>
+              <button className="run" onClick={() => window.location.reload()}>Réessayer</button>
+            </div>
+          ) : currentSlug ? (
             <CardView
               slug={currentSlug}
               titleOf={titleOf}
@@ -78,7 +87,7 @@ export function App() {
               onProgressChanged={loadProgress}
             />
           ) : (
-            <p>Aucune carte disponible.</p>
+            <p>Chargement des cartes…</p>
           )}
         </main>
 

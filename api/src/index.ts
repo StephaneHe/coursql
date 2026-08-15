@@ -11,6 +11,7 @@ import {
   findUserByName,
   getSessionUser,
   isValidDisplayName,
+  listAccounts,
   revokeSession,
 } from './session';
 import {
@@ -76,10 +77,16 @@ function buildApp() {
   app.use(attachUser);
 
   app.get('/api/health', wrap(async (_req, res) => {
-    res.json({ ok: true, version: '1.2.0' });
+    res.json({ ok: true, version: '1.3.0' });
   }));
 
   // --- Identification & sessions ---
+  // Public: list existing profiles for the account-picker home page (no secrets).
+  app.get('/api/accounts', wrap(async (_req, res) => {
+    const accounts = await listAccounts();
+    res.json({ accounts: accounts.map((a) => ({ user_id: a.id, display_name: a.display_name })) });
+  }));
+
   app.post('/api/users', wrap(async (req, res) => {
     const displayName = String(req.body?.display_name ?? '');
     if (!isValidDisplayName(displayName)) {
@@ -297,7 +304,7 @@ function setSessionCookie(res: Response, sid: string): void {
   res.cookie(COOKIE, sid, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.isProd,
+    secure: config.cookieSecure,
     signed: true,
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });

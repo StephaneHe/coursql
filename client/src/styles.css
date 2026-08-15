@@ -80,6 +80,55 @@ button.ghost {
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 .error-text { color: var(--bad); }
 
+/* Home / account picker */
+.home {
+  max-width: 720px;
+  margin: 8vh auto;
+  background: var(--panel);
+  padding: 32px;
+  border-radius: 14px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.08);
+}
+.home h1 { margin: 0; color: var(--primary); }
+.home-section { font-size: 18px; margin: 22px 0 12px; }
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 14px;
+}
+.account-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 10px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  transition: border-color 0.15s, transform 0.05s;
+}
+.account-card:hover:not(:disabled) { border-color: var(--primary); background: #eff6ff; }
+.account-card:active:not(:disabled) { transform: translateY(1px); }
+.account-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+.account-new .account-avatar { background: #64748b; }
+.account-name { font-weight: 600; text-align: center; word-break: break-word; }
+.create-box { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.create-box label { display: block; font-weight: 600; margin-bottom: 6px; }
+.create-box input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 16px; }
+.create-actions { display: flex; gap: 10px; margin-top: 12px; }
+.muted { color: var(--muted); }
+
 /* App shell */
 .app-loading { padding: 40px; }
 .app-bar {

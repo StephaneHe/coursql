@@ -29,6 +29,20 @@ export async function createUser(displayName: string): Promise<SessionUser> {
   return { id, display_name: trimmed };
 }
 
+// Public list of existing profiles for the account-picker home page. Returns only the
+// display name + internal id — never any secret (there is no password anyway, see §7).
+export async function listAccounts(): Promise<SessionUser[]> {
+  const [rows] = await appPool.execute(
+    `SELECT id, display_name FROM users
+      ORDER BY (last_active_at IS NULL), last_active_at DESC, created_at DESC
+      LIMIT 100`,
+  );
+  return (rows as Array<{ id: string; display_name: string }>).map((r) => ({
+    id: r.id,
+    display_name: r.display_name,
+  }));
+}
+
 export async function findUserByName(displayName: string): Promise<SessionUser | null> {
   const [rows] = await appPool.execute(
     'SELECT id, display_name FROM users WHERE name_normalized = ?',

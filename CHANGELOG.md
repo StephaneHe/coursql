@@ -3,6 +3,14 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.3.0] - 2026-08-15
+
+### Fixed
+- **Page vide après connexion (bug bloquant)** : le cookie de session était émis avec l'attribut **`Secure`** (car `NODE_ENV=production`). Sur du **HTTP** (`http://localhost:8080`, réseau the private network privé), les navigateurs **refusent de stocker un cookie Secure** → le client n'était jamais authentifié → `/api/progress` renvoyait `401` → ni cartes ni menu. Le smoke-test curl ne l'avait pas vu (curl ignore la contrainte). Correctif : attribut `Secure` **configurable** via `COOKIE_SECURE` (défaut `false` ici ; passer `true` uniquement derrière HTTPS/Nginx). Robustesse client : état d'erreur affiché au lieu d'une page blanche.
+
+### Added
+- **Page d'accueil = sélecteur de comptes en cartes** : nouvel endpoint public `GET /api/accounts` (liste `display_name` + id interne, **jamais de secret**) ; l'accueil affiche une **grille de cartes-comptes cliquables** (clic = ouverture de session par nom, sans mot de passe, §7) + une carte **« ＋ Nouveau profil »**.
+
 ## [1.2.1] - 2026-08-15
 
 ### Fixed

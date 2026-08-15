@@ -14,6 +14,10 @@ export const config = {
     execPassword: process.env.EXEC_DB_PASSWORD ?? 'coursql_exec_pw',
   },
   sessionSecret: process.env.SESSION_SECRET ?? 'dev_session_secret_change_me',
+  // The session cookie must NOT be Secure when served over plain HTTP (browsers drop Secure
+  // cookies on http://). This deployment is HTTP over a private the private network network, so default
+  // false. Set COOKIE_SECURE=true only behind HTTPS/Nginx (DESIGN §12.4.c hardening).
+  cookieSecure: (process.env.COOKIE_SECURE ?? 'false') === 'true',
   // Execution safety constants (DESIGN §12.4.b)
   queryTimeoutMs: Number(process.env.QUERY_TIMEOUT_MS ?? 3000),
   maxRowsReturned: Number(process.env.MAX_ROWS_RETURNED ?? 1000),

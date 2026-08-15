@@ -19,6 +19,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 export const api = {
   me: () => request<{ user: Me | null }>('GET', '/api/me'),
+  accounts: () => request<{ accounts: Me[] }>('GET', '/api/accounts'),
   createUser: (display_name: string) =>
     request<Me>('POST', '/api/users', { display_name }),
   login: (display_name: string) =>
