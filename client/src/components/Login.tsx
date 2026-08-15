@@ -107,11 +107,6 @@ export function Login({ onAuth }: LoginProps) {
       )}
 
       {error && <p className="error-text" role="alert">{error}</p>}
-
-      <p className="notice">
-        ℹ️ Il n'y a pas de mot de passe : toute personne qui voit un nom peut ouvrir ce profil.
-        C'est prévu pour un usage personnel, familial ou scolaire de confiance.
-      </p>
     </div>
   );
 }

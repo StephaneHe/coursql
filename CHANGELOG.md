@@ -3,6 +3,12 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.7.1] - 2026-08-15
+
+### Changed
+- **Purge des comptes** : suppression de tous les comptes de test de la base en cours (ne reste que `Alex`), avec leurs données liées (`user_sessions`, `exercise_attempts`, `user_progress`) via le compte applicatif ; nettoyage des bases de travail isolées `ex_*` orphelines via le provisioner. (L'init `db/init/*` ne crée aucun compte : une install fraîche démarre sans profil.)
+- **UI** : retrait du message « Il n'y a pas de mot de passe… usage de confiance » sur la page d'accueil / sélecteur de comptes.
+
 ## [1.7.0] - 2026-08-15
 
 ### Added — CURRICULUM COMPLET (50 cartes / 15 modules)
