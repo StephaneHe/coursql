@@ -2,9 +2,9 @@
 
 Application web interactive pour **apprendre le SQL progressivement**, destinée à un adulte débutant complet en bases de données. Pédagogie en **spirale** (peu de concepts neufs par leçon, réutilisation constante des acquis), validation **sur le résultat** et non sur le texte de la requête, exécution **sécurisée** de SQL non fiable.
 
-- **Version :** `1.2.0` (voir [`CHANGELOG.md`](./CHANGELOG.md))
-- **État :** **tranche verticale en place** (cartes **C1→C5**) — jouable de bout en bout. Le reste des 50 cartes suivra.
-- **UI en cartes** : une notion = une **carte** ; chaque carte porte un exercice **gating** dont la réussite débloque la carte suivante (15 modules / 50 cartes prévus).
+- **Version :** `1.7.3` (voir [`CHANGELOG.md`](./CHANGELOG.md))
+- **État :** **curriculum complet** — 50 cartes / 15 modules, du `SELECT` au projet final (jointures, sous-requêtes, transactions, DDL). Démarre automatiquement au boot (voir « Démarrage automatique » ci-dessous).
+- **UI en cartes** : une notion = une **carte** ; chaque carte porte un exercice **gating** dont la réussite débloque la carte suivante (15 modules / 50 cartes).
 
 ## Lancer la tranche C1→C5
 
@@ -22,6 +22,30 @@ docker compose up -d --build # construit le client + l'API, démarre MySQL (dét
 > Démarrage à froid : l'API attend que MySQL accepte les connexions (quelques secondes de « waiting for MySQL » dans les logs), c'est normal. Vérifier : `curl http://localhost:8080/api/health`.
 
 Puis ouvrir **http://localhost:8080** (ou via the private network : **http://localhost:8080**).
+
+## Démarrage automatique (résilience au redémarrage du PC)
+
+coursSQL revient tout seul après un reboot Windows, sans intervention. Deux niveaux :
+
+1. **Démon Docker au boot de WSL** — `the host init config` (distro `linux-host`) contient une section `[boot]` unique qui, entre autres, lance `service docker start`. Dès que la distro WSL démarre, le démon Docker démarre (en **root**, pas de sudo interactif), puis les conteneurs `coursql-*` reviennent seuls grâce à `restart: unless-stopped`.
+
+   ```ini
+   [boot]
+   command = sysctl -w net.ipv4.ip_unprivileged_port_start=80; modprobe kvm_intel && chmod 666 /dev/kvm; service docker start
+   ```
+
+   > ⚠️ `host init config` n'accepte **qu'une seule** section `[boot]` avec **une seule** clé `command` : les commandes multiples sont chaînées par `;`. (Un doublon `[boot]` faisait auparavant que seule la dernière commande s'exécutait.) Ceci profite à **tous** les services WSL du services, pas qu'à coursSQL.
+
+2. **Réveil de WSL au logon Windows** — une **tâche planifiée** `startup-task` (déclencheur *ONLOGON*) exécute [`scripts/startup-script`](./scripts/startup-script), qui réveille la distro WSL (ce qui déclenche le `[boot]` ci-dessus), attend le démon Docker, puis fait un `docker-compose up -d` **idempotent** (filet de sécurité).
+
+   Recréer la tâche si besoin :
+   ```bash
+   a scheduled task //Create //TN "startup-task" \
+     //TR 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<project>\scripts\startup-script"' \
+     //SC ONLOGON //RL LIMITED //F
+   ```
+
+**Tester la résilience sans rebooter** : `wsl -e bash -c "sudo service docker stop"` puis `wsl.exe --shutdown` (état à froid), puis `a scheduled task //Run //TN "startup-task"` → Docker redémarre seul et `curl http://127.0.0.1:8080/api/health` répond `200`.
 
 Parcours de test : créer un profil → C1/C2/C3 (quiz) → **C4** taper `SELECT * FROM books;` → **C5** `SELECT title, year FROM books;`. Essaie une requête fausse (ex. `SELECT titre FROM books;`) pour voir le **message d'erreur pédagogique**, ou `UPDATE books SET year=0;` pour voir le **blocage par les privilèges** (executor en lecture seule).
 

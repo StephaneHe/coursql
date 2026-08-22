@@ -3,6 +3,20 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.7.3] - 2026-08-15
+
+### Added — résilience au redémarrage
+- **Démarrage automatique de la pile après reboot Windows**, sur deux niveaux :
+  - `the host init config` (`linux-host`) : section `[boot]` **unique** exécutant (entre autres) `service docker start` → le démon Docker démarre au boot de WSL (en root), puis les conteneurs reviennent seuls via `restart: unless-stopped`.
+  - Tâche planifiée Windows `startup-task` (déclencheur *ONLOGON*) → `scripts/startup-script` réveille WSL (déclenche le `[boot]`), attend le démon Docker, puis `docker-compose up -d` idempotent.
+- Nouveau `scripts/startup-script` ; section « Démarrage automatique » dans le README.
+
+### Fixed
+- **`the host init config` avait deux sections `[boot]`** (invalide : seule la dernière s'exécutait, donc le `sysctl` de ports non privilégiés était perdu). Fusionné en une seule section `[boot]` chaînant `sysctl … ; modprobe kvm_intel && chmod 666 /dev/kvm ; service docker start` — bénéficie à **tous** les services WSL du services.
+
+### Proof
+- Résilience prouvée sans reboot : `service docker stop` + `wsl --shutdown` (état à froid) → déclenchement de la tâche → Docker redémarre **automatiquement** via `[boot]`, conteneurs `courssql-mysql-1`/`courssql-app-1` `Up`/healthy, `GET /api/health` = 200, login Alex OK. Données (volumes) préservées.
+
 ## [1.7.2] - 2026-08-15
 
 ### Fixed
