@@ -1,0 +1,27 @@
+RewriteEngine On
+
+# Les contenus privés restent hors webroot ; ces chemins sont aussi refusés explicitement.
+RewriteRule ^(?:private|private_coursql)(?:/|$) - [R=404,L,NC]
+RewriteRule ^vendor(?:/|$) - [R=404,L,NC]
+RewriteRule (^|/)\. - [R=404,L]
+
+# Toutes les routes API passent par le front-controller PHP.
+RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
+
+# Fichiers statiques React, puis fallback SPA.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+
+<FilesMatch "(?i)(^\.env|config\.local\.php$|\.(?:json|sql|md|lock)$)">
+  Require all denied
+</FilesMatch>
+
+Options -Indexes
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>

@@ -36,4 +36,6 @@ export const api = {
     request<{ hint_fr: string; index: number; remaining: number }>('POST', `/api/cards/${slug}/hint`, { index }),
   solution: (slug: string) =>
     request<{ solution_sql: string | null; explanation_fr: string }>('POST', `/api/cards/${slug}/solution`),
+  reset: (slug: string) =>
+    request<{ ok?: boolean; noop?: boolean; messageFr?: string }>('POST', `/api/cards/${slug}/reset`, {}),
 };

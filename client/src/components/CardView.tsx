@@ -61,7 +61,7 @@ export function CardView({ slug, titleOf, onNavigate, onProgressChanged }: CardV
       setResult(res);
       if (res.card_validated) onProgressChanged();
     } catch (e) {
-      setResult({ status: 'error', kind: isQuiz ? 'quiz' : 'sql', messageFr: (e as Error).message });
+      setResult({ status: 'error', kind: isQuiz ? 'quiz' : card.gating.kind, messageFr: (e as Error).message });
     } finally {
       setBusy(false);
     }
@@ -85,10 +85,19 @@ export function CardView({ slug, titleOf, onNavigate, onProgressChanged }: CardV
     onProgressChanged();
   }
 
-  function reset() {
-    setSql('');
-    setChoice(null);
-    setResult(null);
+  async function reset() {
+    if (!card) return;
+    setBusy(true);
+    try {
+      await api.reset(card.slug);
+      setSql('');
+      setChoice(null);
+      setResult(null);
+    } catch (e) {
+      setResult({ status: 'error', kind: card.gating.kind, messageFr: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -184,7 +193,7 @@ export function CardView({ slug, titleOf, onNavigate, onProgressChanged }: CardV
             Indice {card.gating.hintCount > 0 ? `(${hints.length}/${card.gating.hintCount})` : ''}
           </button>
           <button className="secondary" onClick={showSolution}>Voir la solution</button>
-          <button className="ghost" onClick={reset}>Réinitialiser</button>
+          <button className="ghost" disabled={busy} onClick={() => void reset()}>Réinitialiser</button>
         </div>
 
         {/* Hints */}

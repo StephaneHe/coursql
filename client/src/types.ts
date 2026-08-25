@@ -39,7 +39,7 @@ export interface TableSchema {
 }
 
 export interface GatingPublic {
-  kind: 'quiz' | 'sql';
+  kind: 'quiz' | 'sql' | 'mutation';
   questionFr?: string;
   options?: string[];
   hintCount: number;
@@ -64,7 +64,7 @@ export interface PublicCard {
 
 export interface ExecuteResponse {
   status: 'pass' | 'fail' | 'error' | 'timeout';
-  kind: 'sql' | 'quiz';
+  kind: 'sql' | 'quiz' | 'mutation';
   columns?: string[];
   rows?: (string | number | null)[][];
   truncated?: boolean;

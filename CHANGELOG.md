@@ -3,6 +3,20 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0] - 2026-08-25
+
+### Port PHP pour OVH mutualisé
+- API Express réécrite en PHP 8.1+ ; front React statique conservé, même origine `/api/*`, zéro CORS.
+- Base MySQL unique et compte unique : tables `app_*`, `seed_*`/`seedref_*` et workspaces `wk_*` isolés par utilisateur/carte.
+- `SqlGuard` critique fondé sur le parser vendored, allowlists positives, réécriture obligatoire et contrôle post-réécriture ; **20/20 attaques documentées bloquées**.
+- Sessions PHP natives hors base, locks `app_locks`, reset ciblé, C45 sur deux PDO distincts, vérifications DDL préparées.
+- Validation locale MySQL 8.4.11 / PHP 8.3.6 : **50/50 cartes**, **38/38 SELECT**, comparaison 13/13 et recette HTTP.
+- Dump unique `deploy/ovh/schema.sql`, réparation seed, paquet web/private séparé et procédure OVH documentée. Le déploiement distant reste volontairement différé.
+
+### Limites assumées
+- La barrière de privilèges MySQL à trois comptes disparaît au profit de l'isolation applicative ; toute modification de `SqlGuard` exige la recette adversariale.
+- La version MySQL OVH doit encore être vérifiée (≥ 8.0.31 pour C41) avant import ; PHP 8.1+, HTTPS et cookie `Secure` sont des prérequis manuels.
+
 ## [2.0.0-alpha.10] - 2026-08-25
 
 ### Workspaces mutants
