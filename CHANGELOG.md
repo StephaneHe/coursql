@@ -3,6 +3,14 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.2] - 2026-08-25
+
+### Fixed — mise en ligne coursql.shoette.com (erreur 500 création de profil)
+- **Cause racine** : le sous-domaine tournait en **PHP 7.4** (défaut du compte OVH, `.ovhconfig` racine `app.engine.version=7.4`) alors que le code exige **PHP ≥ 8.1** → erreur fatale de parsing dès le bootstrap (500 même sur `/api/health`). **Fix** : `.ovhconfig` par dossier déposé dans `coursql/` forçant **PHP 8.3** (sans toucher au `.ovhconfig` du compte, qui sert les autres sites). `php/.ovhconfig` versionné + inclus par `build-package.mjs`.
+- **Seconde cause** : le **schéma n'avait pas été importé** (base vide → `INSERT INTO app_users` échoue). **Fix** : import distant de `deploy/ovh/schema.sql` (25 instructions, tables `app_*`/`seed_*`/`seedref_*`) via un script d'import temporaire à jeton, supprimé ensuite.
+- **Vérifié en ligne** : MySQL OVH **8.4.10** (≥ 8.0.31 → C41 `INTERSECT`/`EXCEPT` OK) ; création de profil **201**, login/progression **200**, carte C1 (quiz) et **C4 SELECT** (SqlGuard réécrit `members→seed_members`) OK ; attaque `SELECT * FROM app_users` **refusée** en ligne.
+- **Sécurité** : `private_coursql/config.local.php`, `cards.json`, `vendor/`, `api/config.php` → **403/404** ; fichiers de diagnostic/import temporaires **supprimés** après usage ; aucun secret exposé/committé.
+
 ## [2.0.1] - 2026-08-25
 
 ### Déploiement OVH (étape 12)

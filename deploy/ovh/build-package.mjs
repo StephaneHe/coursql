@@ -31,6 +31,8 @@ fs.cpSync(path.join(root, 'php', 'vendor'), path.join(web, 'vendor'), {
   filter: (source) => !source.replaceAll('\\', '/').includes('/vendor/bin'),
 });
 fs.copyFileSync(path.join(root, 'php', '.htaccess'), path.join(web, '.htaccess'));
+// Per-folder OVH runtime override: forces PHP 8.x for this subdomain (account default is 7.4).
+fs.copyFileSync(path.join(root, 'php', '.ovhconfig'), path.join(web, '.ovhconfig'));
 fs.copyFileSync(path.join(root, 'private_coursql', 'cards.json'), path.join(privateDir, 'cards.json'));
 fs.chmodSync(path.join(privateDir, 'cards.json'), 0o600);
 for (const sql of ['schema.sql', 'repair_seed.sql']) {
