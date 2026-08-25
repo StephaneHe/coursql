@@ -8,8 +8,10 @@ require __DIR__ . '/lib/Http.php';
 require __DIR__ . '/lib/SqlErrors.php';
 require __DIR__ . '/lib/Auth.php';
 require __DIR__ . '/lib/Cards.php';
+require __DIR__ . '/lib/Compare.php';
 require __DIR__ . '/lib/Progress.php';
 require __DIR__ . '/lib/SqlGuard.php';
+require __DIR__ . '/lib/Runner.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -48,7 +50,7 @@ if ($route !== null) {
 }
 
 $routeParams = [];
-if (preg_match('#^/cards/([A-Za-z0-9_-]+)(?:/(next|hint|solution))?$#', $path, $matches)) {
+if (preg_match('#^/cards/([A-Za-z0-9_-]+)(?:/(next|hint|solution|execute))?$#', $path, $matches)) {
     $routeParams['slug'] = strtoupper($matches[1]);
     $suffix = $matches[2] ?? '';
     $cardRoutes = [
@@ -56,6 +58,7 @@ if (preg_match('#^/cards/([A-Za-z0-9_-]+)(?:/(next|hint|solution))?$#', $path, $
         'GET next' => 'card_next.php',
         'POST hint' => 'card_hint.php',
         'POST solution' => 'card_solution.php',
+        'POST execute' => 'card_execute.php',
     ];
     $cardRoute = $cardRoutes[$method . ' ' . $suffix] ?? null;
     if ($cardRoute !== null) {

@@ -92,4 +92,25 @@ curl -fsS -c "$test_dir/cookies-login" -H 'Content-Type: application/json' \
 curl -fsS -b "$test_dir/cookies-login" "http://127.0.0.1:$port/api/me" >"$test_dir/me-login.json"
 node -e "const x=require(process.argv[1]); if(x.user?.display_name!==process.argv[2]) process.exit(1)" \
   "$test_dir/me-login.json" "$display_name"
+
+for spec in 'C1:1' 'C2:2' 'C3:2'; do
+  slug=${spec%%:*}
+  choice=${spec##*:}
+  curl -fsS -b "$test_dir/cookies-login" -H 'Content-Type: application/json' -d "{\"choice\":$choice}" \
+    "http://127.0.0.1:$port/api/cards/$slug/execute" >"$test_dir/execute-$slug.json"
+done
+curl -fsS -b "$test_dir/cookies-login" -H 'Content-Type: application/json' \
+  -d '{"sql":"SELECT * FROM members;"}' "http://127.0.0.1:$port/api/cards/C4/execute" >"$test_dir/execute-C4.json"
+curl -fsS -b "$test_dir/cookies-login" "http://127.0.0.1:$port/api/progress" >"$test_dir/progress-C4.json"
+node - "$test_dir/execute-C1.json" "$test_dir/execute-C2.json" "$test_dir/execute-C3.json" "$test_dir/execute-C4.json" "$test_dir/progress-C4.json" <<'NODE'
+const fs = require('fs');
+const paths = process.argv.slice(2);
+for (const path of paths.slice(0, 4)) {
+  const result = JSON.parse(fs.readFileSync(path));
+  if (result.status !== 'pass' || result.card_validated !== true) throw new Error(`exécution invalide : ${path}`);
+}
+const cards = JSON.parse(fs.readFileSync(paths[4])).modules.flatMap((module) => module.cards);
+if (cards[4].slug !== 'C5' || cards[4].status !== 'available') throw new Error('C5 non déverrouillée après C4');
+console.log('Exécution HTTP OK : C1→C4 pass, C5 disponible');
+NODE
 echo 'Logout/login OK : 204, session détruite puis recréée'

@@ -3,6 +3,13 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.9] - 2026-08-25
+
+### Exécution lecture seule
+- `Runner.php` exécute uniquement le SQL réécrit, avec `max_execution_time`, limite PHP et plafond de 1000 lignes.
+- Route `execute` portée pour quiz et 38 cartes SELECT, contrats React et erreurs pédagogiques conservés.
+- Rejeu direct **38/38** des solutions SELECT, variantes naïves C8/C18 en échec attendu et intégrité `seed_*` vérifiée face à `seedref_*`.
+
 ## [2.0.0-alpha.8] - 2026-08-25
 
 ### SqlGuard — isolation critique
