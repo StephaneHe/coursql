@@ -3,6 +3,13 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.1] - 2026-08-25
+
+### Pré-vol PHP / MySQL
+- Environnement local validé : **PHP 8.3.6** avec `pdo_mysql` et **MySQL 8.4.11**. La version MySQL locale est supérieure au minimum **8.0.31** requis par C41 (`INTERSECT` / `EXCEPT`).
+- La version MySQL OVH reste à relever avant import : les variables `OVH_DB_*` du `.env` local sont vides et le fichier d'exploitation externe ne contient que les paramètres SFTP. Aucun accès ni déploiement OVH n'a été tenté.
+- Début du port majeur **2.0.0** : API PHP 8.1+ et base MySQL unique, avec le front React statique conservé.
+
 ## [1.9.0] - 2026-08-15
 
 ### Added
