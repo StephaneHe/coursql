@@ -3,6 +3,17 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.7.4] - 2026-08-15
+
+### Deployment — coursql.shoette.com (porte de compatibilité : INCOMPATIBLE mutualisé OVH)
+- **Décision : NON déployable sur l'hébergement mutualisé OVH.** Audit de compatibilité (gate avant tout upload) : rien n'a été uploadé.
+- **Raisons** :
+  1. Le backend est un **serveur Node.js/Express persistant** (`api/`, `express` + `mysql2`) ; le mutualisé OVH n'exécute que **PHP + fichiers statiques**, aucun process Node long-running.
+  2. Toute l'UI dépend de l'API (`/api/accounts|cards|me|progress|sessions|users`) : le front React statique seul est inutilisable.
+  3. La sécurité (exécution de SQL non fiable) exige `CREATE DATABASE`/`DROP DATABASE` à la volée (bases isolées `ex_*` par utilisateur), `GET_LOCK`, et **3 comptes MySQL** (app/provisioner/executor) — impossible sur mutualisé (une base fixe, un utilisateur).
+- **Options remontées** (voir callback) : **A** — héberger le stack Node+MySQL tel quel sur un hôte Node-capable (VPS OVH / machine actuelle) derrière un reverse proxy HTTPS pointé par `coursql.shoette.com` (**recommandé, zéro réécriture**) ; **B** — hybride (front statique sur mutualisé + API Node hébergée ailleurs, CORS) ; **C** — réécriture PHP (gros chantier + dégrade le modèle d'isolation de sécurité, déconseillé).
+- Aucun secret modifié/committé ; `.env` (dont `OVH_DB_*`) non versionné.
+
 ## [1.7.3] - 2026-08-15
 
 ### Added — résilience au redémarrage
