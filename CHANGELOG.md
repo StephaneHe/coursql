@@ -3,6 +3,13 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.4] - 2026-08-25
+
+### Socle API PHP
+- Front-controller `php/api/index.php`, routage relatif `/api/*`, réponses JSON bornées et erreurs internes sans fuite de détails.
+- PDO mono-base avec requêtes préparées natives, connexions non persistantes et `PDO::MYSQL_ATTR_MULTI_STATEMENTS=false`.
+- `GET /api/health` et `GET /api/version` exposent la version visible du palier.
+
 ## [2.0.0-alpha.3] - 2026-08-25
 
 ### Schéma mono-base
