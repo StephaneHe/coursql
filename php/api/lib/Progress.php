@@ -6,14 +6,11 @@ final class Progress
     /** @var array<int,array{slug:string,title:string,moduleSlug:string,moduleTitle:string}> */
     private static array $cards = [];
 
-    public static function loadCardIndex(string $cardsPath): void
+    public static function loadCardIndex(array $cards): void
     {
-        $raw = file_get_contents($cardsPath);
-        $cards = $raw === false ? null : json_decode($raw, true);
-        if (!is_array($cards) || count($cards) !== 50) {
+        if (count($cards) !== 50) {
             throw new RuntimeException('Index des cartes indisponible.');
         }
-        usort($cards, static fn(array $a, array $b): int => $a['position'] <=> $b['position']);
         self::$cards = array_map(static fn(array $card): array => [
             'slug' => $card['slug'],
             'title' => $card['title'],

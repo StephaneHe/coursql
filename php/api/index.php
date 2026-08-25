@@ -6,6 +6,7 @@ require __DIR__ . '/lib/Db.php';
 require __DIR__ . '/lib/Http.php';
 require __DIR__ . '/lib/SqlErrors.php';
 require __DIR__ . '/lib/Auth.php';
+require __DIR__ . '/lib/Cards.php';
 require __DIR__ . '/lib/Progress.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,7 +20,8 @@ set_exception_handler(static function (Throwable $error): never {
 $config = coursql_config();
 Db::init($config);
 Auth::start($config);
-Progress::loadCardIndex($config['cards_path']);
+Cards::load($config['cards_path']);
+Progress::loadCardIndex(Cards::ordered());
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -41,6 +43,22 @@ $routes = [
 $route = $routes[$method . ' ' . $path] ?? null;
 if ($route !== null) {
     require __DIR__ . '/routes/' . $route;
+}
+
+$routeParams = [];
+if (preg_match('#^/cards/([A-Za-z0-9_-]+)(?:/(next|hint|solution))?$#', $path, $matches)) {
+    $routeParams['slug'] = strtoupper($matches[1]);
+    $suffix = $matches[2] ?? '';
+    $cardRoutes = [
+        'GET ' => 'card_get.php',
+        'GET next' => 'card_next.php',
+        'POST hint' => 'card_hint.php',
+        'POST solution' => 'card_solution.php',
+    ];
+    $cardRoute = $cardRoutes[$method . ' ' . $suffix] ?? null;
+    if ($cardRoute !== null) {
+        require __DIR__ . '/routes/' . $cardRoute;
+    }
 }
 
 Http::send(404, ['error' => 'not_found', 'messageFr' => 'Route API inconnue.']);

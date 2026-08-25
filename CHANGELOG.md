@@ -3,6 +3,12 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.6] - 2026-08-25
+
+### Contenu et cartes
+- `Cards.php` charge et valide les 50 cartes privées, puis applique une projection publique qui exclut solutions, expected, SQL de vérification et réponses de quiz.
+- Routes carte, carte suivante, indice et solution portées ; consulter un indice ou une solution ne valide jamais la carte.
+
 ## [2.0.0-alpha.5] - 2026-08-25
 
 ### Authentification et progression

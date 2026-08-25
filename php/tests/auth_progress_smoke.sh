@@ -41,6 +41,12 @@ user_id=$(node -e "const x=require(process.argv[1]); if(!x.user_id) process.exit
 
 curl -fsS -b "$test_dir/cookies" "http://127.0.0.1:$port/api/me" >"$test_dir/me.json"
 curl -fsS -b "$test_dir/cookies" "http://127.0.0.1:$port/api/progress" >"$test_dir/progress.json"
+curl -fsS -b "$test_dir/cookies" "http://127.0.0.1:$port/api/cards/C1" >"$test_dir/card-c1.json"
+curl -fsS -b "$test_dir/cookies" -H 'Content-Type: application/json' -d '{"index":0}' \
+  "http://127.0.0.1:$port/api/cards/C1/hint" >"$test_dir/hint-c1.json"
+curl -fsS -b "$test_dir/cookies" -H 'Content-Type: application/json' -d '{}' \
+  "http://127.0.0.1:$port/api/cards/C1/solution" >"$test_dir/solution-c1.json"
+curl -fsS -b "$test_dir/cookies" "http://127.0.0.1:$port/api/progress" >"$test_dir/progress-after-solution.json"
 node - "$test_dir/health.json" "$test_dir/me.json" "$test_dir/progress.json" "$display_name" <<'NODE'
 const fs = require('fs');
 const [healthPath, mePath, progressPath, displayName] = process.argv.slice(2);
@@ -54,6 +60,25 @@ if (cards.length !== 50) throw new Error(`50 cartes attendues, ${cards.length} r
 if (cards[0].slug !== 'C1' || cards[0].status !== 'available') throw new Error('C1 doit être disponible');
 if (cards[1].slug !== 'C2' || cards[1].status !== 'locked') throw new Error('C2 doit être verrouillée');
 console.log(`Auth/progression OK : ${cards.length} cartes, C1=${cards[0].status}, C2=${cards[1].status}`);
+NODE
+node - "$test_dir/card-c1.json" "$test_dir/hint-c1.json" "$test_dir/solution-c1.json" "$test_dir/progress-after-solution.json" <<'NODE'
+const fs = require('fs');
+const [cardPath, hintPath, solutionPath, progressPath] = process.argv.slice(2);
+const payload = JSON.parse(fs.readFileSync(cardPath));
+const serialized = JSON.stringify(payload);
+if (payload.card?.slug !== 'C1' || payload.status !== 'available') throw new Error('C1 non affichable');
+for (const forbidden of ['solutionSql', 'expected', 'correctIndex', 'schemaSql', 'verifySql']) {
+  if (serialized.includes(forbidden)) throw new Error(`champ privé exposé : ${forbidden}`);
+}
+const hint = JSON.parse(fs.readFileSync(hintPath));
+if (!hint.hint_fr || hint.index !== 0) throw new Error('indice C1 invalide');
+const solution = JSON.parse(fs.readFileSync(solutionPath));
+if (solution.solution_sql !== null || !solution.explanation_fr) throw new Error('solution quiz invalide');
+const cards = JSON.parse(fs.readFileSync(progressPath)).modules.flatMap((module) => module.cards);
+if (cards[0].status === 'validated' || cards[0].status === 'validated_after_hint' || cards[1].status !== 'locked') {
+  throw new Error('consulter la solution ne doit pas valider C1');
+}
+console.log('Cartes OK : C1 publique sans fuite, indice/solution sans validation');
 NODE
 
 logout_status=$(curl -sS -o /dev/null -w '%{http_code}' -b "$test_dir/cookies" -X DELETE \
