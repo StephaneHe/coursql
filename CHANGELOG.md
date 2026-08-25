@@ -3,6 +3,12 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.3] - 2026-08-25
+
+### Schéma mono-base
+- Ajout de `deploy/ovh/build-schema.mjs`, qui dérive le dump mono-base des schémas et seeds historiques sans `CREATE/DROP DATABASE`, `USE` ni création de compte.
+- Livrables : `deploy/ovh/schema.sql` (`app_*`, `seed_*`, `seedref_*`, `app_locks`) et `deploy/ovh/repair_seed.sql`.
+
 ## [2.0.0-alpha.2] - 2026-08-25
 
 ### Export du contenu
