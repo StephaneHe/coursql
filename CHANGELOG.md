@@ -3,6 +3,13 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.5] - 2026-08-25
+
+### Authentification et progression
+- Sessions PHP natives (`HttpOnly`, `SameSite=Lax`, mode strict), sans jeton stocké dans la base partagée.
+- Routes profils, création, login, `/me`, logout et `/progress`, avec les contrats JSON React inchangés.
+- Progression/gating séquentiel porté sur les 50 cartes et requêtes applicatives préparées vers `app_users`, `app_progress`, `app_attempts`.
+
 ## [2.0.0-alpha.4] - 2026-08-25
 
 ### Socle API PHP

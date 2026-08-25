@@ -1,6 +1,6 @@
 {
   "name": "courssql-api",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "private": true,
   "type": "commonjs",
   "main": "dist/index.js",
