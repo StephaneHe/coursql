@@ -3,6 +3,12 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.2] - 2026-08-25
+
+### Export du contenu
+- Ajout de `deploy/ovh/export-cards.mjs` : export one-shot des **50 cartes** depuis le module TypeScript compilé, sans retranscription manuelle.
+- Le JSON complet (solutions, résultats attendus, schémas/seeds mutants et tables logiques) est généré dans `private_coursql/cards.json`, hors webroot et ignoré par Git.
+
 ## [2.0.0-alpha.1] - 2026-08-25
 
 ### Pré-vol PHP / MySQL

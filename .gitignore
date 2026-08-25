@@ -7,3 +7,7 @@ build/
 coursql_mysql_data/
 client/dist/
 api/dist/
+
+# PHP port: generated content outside webroot + local DB config (secrets)
+private/
+private_coursql/
