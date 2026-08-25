@@ -3,6 +3,17 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.1] - 2026-08-25
+
+### Déploiement OVH (étape 12)
+- **Upload SFTP** du paquet web vers le compte OVH (procédure sûre : creds hors dépôt, host-key non interactif, mot de passe jamais en argument/echo/log, scan anti-résidu) :
+  - `coursql/` (webroot : front React + `api/` PHP + `vendor/`),
+  - `private_coursql/` (hors webroot : `config.local.php` creds DB + `cards.json` solutions) — **+ `.htaccess` `Require all denied`** en défense en profondeur,
+  - `admin_coursql/` (`gc_workspaces.php`) — idem deny-all.
+- `config.local.php` généré depuis `.env` (`make-config.mjs`, mode 600) ; `private_coursql/` ajouté au `.gitignore` (aucun secret versionné).
+- **Non vérifiable à distance** (donc à faire côté OVH) : l'hôte MySQL OVH `*.mysql.db` n'est pas résolvable hors du réseau d'hébergement → import du schéma et contrôle de version **via phpMyAdmin**. Sous-domaine pas encore pointé.
+- **Bloquant à confirmer** : version du SGBD OVH (C41 `INTERSECT`/`EXCEPT` exige MySQL ≥ 8.0.31 ou MariaDB ≥ 10.3) — à vérifier par `SELECT VERSION();` après import.
+
 ## [2.0.0] - 2026-08-25
 
 ### Port PHP pour OVH mutualisé
