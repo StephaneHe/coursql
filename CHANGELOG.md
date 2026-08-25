@@ -3,6 +3,16 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.8.0] - 2026-08-15
+
+### Added
+- **Dépôt GitHub + premier push** : `git@github.com:StephaneHe/coursql.git`, branche `main`. `.env` exclu (vérifié via `git check-ignore`), aucun secret versionné.
+- **Câblage config OVH** (`api/src/config.ts`) : bascule `DB_TARGET=local|ovh`. En `ovh`, le compte **app** lit `OVH_SERVER_ADD` (hôte SQL), `OVH_DB_USER`/`OVH_DB_PASSWORD`/`OVH_DB_NAME` ; `OVH_SERVER` conservé comme référence. Le dev **local reste inchangé** (défaut `local`). `.env.example` documenté.
+- **`DEPLOY.md`** : décision d'hébergement (mutualisé OVH incompatible) + options A (VPS/Cloud Node-capable + MySQL auto-géré, **recommandée**), B (hybride front statique + API ailleurs), C (réécriture PHP, déconseillée), et ressources OVH nécessaires pour l'option A.
+
+### Notes / limite documentée
+- Le `.env` OVH ne fournit **qu'un** compte MySQL, alors que l'app en exige **3** (app/provisioner/executor) + `CREATE/DROP DATABASE` runtime + `GET_LOCK`. `DB_TARGET=ovh` ne branche donc que le compte **app** ; les cartes mutantes (C42→C49) et l'exécution SQL isolée nécessitent un MySQL auto-géré (Option A). TODO explicite dans `config.ts` et `DEPLOY.md`.
+
 ## [1.7.4] - 2026-08-15
 
 ### Deployment — coursql.shoette.com (porte de compatibilité : INCOMPATIBLE mutualisé OVH)
