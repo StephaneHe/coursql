@@ -12,6 +12,13 @@ final class Runner
         $pdo->exec('SET SESSION max_execution_time = ' . $timeoutMs);
 
         $statement = $pdo->query($sql);
+        return self::collect($statement, $maxRows);
+    }
+
+    /** @return array{columns:array<int,string>,rows:array<int,array<int,mixed>>,truncated:bool} */
+    public static function collect(PDOStatement $statement, int $maxRows): array
+    {
+        $maxRows = max(1, min(1000, $maxRows));
         $columns = [];
         for ($index = 0; $index < $statement->columnCount(); $index++) {
             $meta = $statement->getColumnMeta($index);

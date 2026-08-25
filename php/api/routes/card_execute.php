@@ -42,7 +42,58 @@ if ($gating['kind'] === 'quiz') {
 }
 
 if ($gating['kind'] === 'mutation') {
-    Http::send(501, ['error' => 'not_implemented', 'messageFr' => 'Cette carte mutante sera disponible au prochain palier.']);
+    $rawSql = (string) ($body['sql'] ?? '');
+    $map = Workspace::tableMap($user['id'], $card);
+    $guarded = SqlGuard::process(
+        $rawSql,
+        $card['permissions'],
+        $map,
+        $card['allowMultiStatement'],
+        (int) $config['max_sql_len'],
+    );
+    if (!$guarded['ok']) {
+        Progress::recordAttempt(
+            $user['id'], $card['slug'], $card['gatingExerciseSlug'], $rawSql,
+            'blocked', null, $guarded['category'],
+        );
+        Http::send(400, ['status' => 'error', 'kind' => 'mutation', 'messageFr' => $guarded['messageFr']]);
+    }
+    $started = hrtime(true);
+    try {
+        $result = Workspace::execute($user['id'], $card, $guarded['statements'], $config);
+        $durationMs = (int) round((hrtime(true) - $started) / 1_000_000);
+        $verdict = Compare::result($result['columns'], $result['rows'], $gating['expected'], $gating['compare']);
+        $outcome = $verdict['pass'] ? 'pass' : 'fail';
+        Progress::recordAttempt(
+            $user['id'], $card['slug'], $card['gatingExerciseSlug'], $rawSql, $outcome, $durationMs, null,
+        );
+        $next = null;
+        if ($verdict['pass']) {
+            Progress::validateCard($user['id'], $card['slug']);
+            $next = Cards::nextSlug($card['slug']);
+        }
+        Http::send(200, [
+            'status' => $outcome,
+            'kind' => 'mutation',
+            'columns' => $result['columns'],
+            'rows' => $result['rows'],
+            'messageFr' => $verdict['pass']
+                ? "Parfait, la table est dans l'état attendu ! 🎉"
+                : trim("Pas tout à fait. " . ($verdict['reasonFr'] ?? '') . " (Voici l'état obtenu ci-dessous.)"),
+            'card_validated' => $verdict['pass'],
+            'next_card_slug' => $next,
+        ]);
+    } catch (WorkspaceBusy) {
+        Http::send(409, ['error' => 'workspace_busy', 'messageFr' => 'Cet espace est occupé. Réessaie dans un instant.']);
+    } catch (PDOException $error) {
+        $durationMs = (int) round((hrtime(true) - $started) / 1_000_000);
+        $mapped = SqlErrors::map($error);
+        Progress::recordAttempt(
+            $user['id'], $card['slug'], $card['gatingExerciseSlug'], $rawSql,
+            $mapped['outcome'], $durationMs, $mapped['category'],
+        );
+        Http::send(200, ['status' => $mapped['outcome'], 'kind' => 'mutation', 'messageFr' => $mapped['messageFr']]);
+    }
 }
 
 $rawSql = (string) ($body['sql'] ?? '');

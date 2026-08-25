@@ -3,6 +3,14 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.10] - 2026-08-25
+
+### Workspaces mutants
+- Tables `wk_<uid8>_<carte>_<table>`, reset par liste fermée, rejeu schema/seed réécrit et verrou applicatif `app_locks` à expiration.
+- Exécution mutante sur PDO A puis vérification cachée sur PDO B neuf ; C45 sans `COMMIT` est annulée à la fermeture de A.
+- C46–C49 vérifiées par requêtes `information_schema` préparées sur le seul nom physique attendu.
+- Rejeu complet **50/50**, C42–C49 pass, reset et isolation de deux apprenants validés ; variantes C43 sans `WHERE` et C45 sans `COMMIT` en échec attendu.
+
 ## [2.0.0-alpha.9] - 2026-08-25
 
 ### Exécution lecture seule
