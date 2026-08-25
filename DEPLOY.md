@@ -1,6 +1,12 @@
 # Déploiement de coursSQL
 
-## Verdict : NON déployable sur l'hébergement **mutualisé** OVH
+> **Mise à jour (décision utilisateur)** : le port **PHP** vers le mutualisé OVH est **décidé** —
+> c'est l'option C ci-dessous, retenue malgré ses inconvénients. Le plan d'implémentation détaillé
+> (architecture, isolation par tables préfixées, schéma, étapes, recette) est dans
+> **[`docs/PLAN_PHP_PORT.md`](./docs/PLAN_PHP_PORT.md)**. Le présent document conserve l'analyse
+> comparative des options.
+
+## Verdict : NON déployable **en l'état** sur l'hébergement **mutualisé** OVH
 
 coursSQL n'est **pas** un site PHP/statique : c'est une application **Node.js/Express + MySQL**
 dont le cœur (exécution de SQL non fiable en toute sécurité) impose des opérations que le

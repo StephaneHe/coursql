@@ -3,6 +3,17 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [1.9.0] - 2026-08-15
+
+### Added
+- **`docs/PLAN_PHP_PORT.md`** — plan d'implémentation complet du **port PHP** vers le mutualisé OVH (décision utilisateur : on porte, malgré les limites documentées dans `DEPLOY.md`). Contient : inventaire de l'existant (13 routes, 10 modules, schéma, cartes mutantes C42→C49), architecture PHP cible (front-controller + PDO, **front React statique conservé** ⇒ pas de CORS ni de réécriture UI), **analyse adversariale de l'isolation en base unique** (20 vecteurs d'évasion et leurs parades), migration de schéma en **un dump**, config/déploiement SFTP sûr, **12 étapes ordonnées** et une **recette de vérification** (dont une suite d'attaques qui doit échouer).
+- Mécanisme d'isolation retenu : **namespace de tables** `wk_<uid8>_<carte>_<table>` + **réécriture des identifiants logiques → physiques** + **allowlist positive** (types d'instructions, tokens, tables) via un parser SQL vendored, avec contrôle post-réécriture. Remplace les bases `ex_*`, `GET_LOCK` (→ table `app_locks`) et les 3 comptes MySQL.
+- `DEPLOY.md` renvoie désormais vers ce plan.
+
+### Notes
+- La version **`2.0.0`** est **réservée** au port PHP lui-même (étape 12 du plan). La présente entrée ne livre que la conception.
+- Point dur assumé et documenté : avec un seul compte MySQL, la barrière d'isolation devient **applicative** (filtre PHP) ; `SqlGuard` est un composant critique à re-tester à chaque modification.
+
 ## [1.8.0] - 2026-08-15
 
 ### Added
