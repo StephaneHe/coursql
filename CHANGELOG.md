@@ -3,6 +3,12 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.7] - 2026-08-25
+
+### Comparaison des résultats
+- Port exact de la comparaison observable : multiensemble, doublons comptés, ordre optionnel, noms de colonnes optionnels et `NULL` distinct de chaîne vide/zéro.
+- Comparaison exacte des `DECIMAL` conservés sous forme de chaînes par PDO ; 13 tests unitaires couvrent les cas limites.
+
 ## [2.0.0-alpha.6] - 2026-08-25
 
 ### Contenu et cartes
