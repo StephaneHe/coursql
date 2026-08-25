@@ -29,7 +29,7 @@ function coursql_config(): array
     };
 
     return [
-        'version' => '2.0.0-alpha.7',
+        'version' => '2.0.0-alpha.8',
         'db_host' => (string) $read(['host', 'OVH_SERVER_ADD', 'DB_HOST'], '127.0.0.1'),
         'db_port' => (int) $read(['port', 'DB_PORT'], 3306),
         'db_name' => (string) $read(['name', 'OVH_DB_NAME', 'DB_NAME']),

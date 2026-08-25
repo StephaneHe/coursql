@@ -1,0 +1,14 @@
+{
+  "name": "stephanehe/coursql-php",
+  "description": "API PHP 8.1+ de coursSQL pour hébergement mutualisé OVH",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.1",
+    "phpmyadmin/sql-parser": "5.11.1"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}

@@ -2,12 +2,14 @@
 declare(strict_types=1);
 
 require __DIR__ . '/config.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
 require __DIR__ . '/lib/Db.php';
 require __DIR__ . '/lib/Http.php';
 require __DIR__ . '/lib/SqlErrors.php';
 require __DIR__ . '/lib/Auth.php';
 require __DIR__ . '/lib/Cards.php';
 require __DIR__ . '/lib/Progress.php';
+require __DIR__ . '/lib/SqlGuard.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');

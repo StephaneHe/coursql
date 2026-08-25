@@ -3,6 +3,14 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.0.0-alpha.8] - 2026-08-25
+
+### SqlGuard — isolation critique
+- `phpmyadmin/sql-parser` 5.11.1 vendored : lexing/parsing réel avant exécution et seconde passe post-réécriture.
+- Allowlists positives de types d'instructions, fonctions, mots-clés, opérateurs et tables ; réécriture logique → physique dans toutes les branches, qualificateurs et CTE.
+- Refus des commentaires exécutables, multi-instructions hors C45, identifiants réservés/qualifiés, variables système, fonctions non prévues et espaces Unicode exotiques.
+- Suite adversariale : **20/20 familles documentées bloquées**, complétées par 8 variantes supplémentaires.
+
 ## [2.0.0-alpha.7] - 2026-08-25
 
 ### Comparaison des résultats
