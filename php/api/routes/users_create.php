@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+RateLimit::enforce(
+    'users',
+    RateLimit::clientIp(),
+    5,
+    600,
+    'Trop de créations de profil coup sur coup. Patiente quelques minutes avant de réessayer.',
+);
+
 $displayName = (string) (Http::jsonBody()['display_name'] ?? '');
 if (!Auth::validDisplayName($displayName)) {
     Http::send(400, ['error' => 'invalid_name', 'messageFr' => 'Choisis un nom entre 1 et 40 caractères.']);

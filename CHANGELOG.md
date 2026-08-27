@@ -3,6 +3,27 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.1.0] - 2026-08-27
+
+### Added — request rate limiting (security)
+- **Fixed-window rate limiter** backed by the single MySQL database (`app_rate_limit` table), suited
+  to OVH shared hosting where no persistent PHP process, APCu or Redis is available. One row per
+  bucket `(scope + hashed identity)`, reset atomically at each window rollover via a single UPSERT.
+  Fails **open**: a limiter malfunction never blocks normal use.
+- Enforced on the abuse-prone, resource-heavy routes: `POST /api/users` (5 / 10 min per IP),
+  `POST /api/cards/{slug}/execute` (45 / min per user+IP), `POST /api/cards/{slug}/reset`
+  (20 / min per user+IP). The last two cover the mutating cards C42–C49, whose every attempt runs a
+  full DROP + CREATE + seed cycle. Over quota → **HTTP 429** with a `Retry-After` header and a clear
+  message; a human progressing through cards at a natural pace is never blocked.
+- Idempotent migration `deploy/ovh/migrations/2.1.0_rate_limit.sql`; the table is also part of the
+  generated fresh-install schema (`deploy/ovh/schema.sql`).
+
+### Changed
+- README rewritten in **English** and brought up to date with the deployed PHP port (v2.x): SqlGuard
+  security model, architecture, live demo link, local run instructions. No private infrastructure
+  details.
+- `/api/health` now reports the correct version (was hardcoded to `2.0.0`).
+
 ## [2.0.2] - 2026-08-25
 
 ### Fixed — mise en ligne coursql.shoette.com (erreur 500 création de profil)

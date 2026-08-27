@@ -1,4 +1,4 @@
--- coursSQL 2.0.0 — schéma mono-base pour OVH mutualisé.
+-- coursSQL 2.1.0 — schéma mono-base pour OVH mutualisé.
 -- Généré par deploy/ovh/build-schema.mjs depuis db/init/*.sql.
 -- À importer dans la base existante : aucun CREATE/DROP DATABASE, USE ou CREATE USER.
 
@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS app_locks (
   holder      CHAR(64)    NOT NULL,
   acquired_at DATETIME    NOT NULL,
   PRIMARY KEY (lock_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS app_rate_limit (
+  bucket_key   VARCHAR(160) NOT NULL,
+  window_start DATETIME     NOT NULL,
+  hits         INT          NOT NULL DEFAULT 0,
+  PRIMARY KEY (bucket_key),
+  KEY idx_app_rate_limit_window (window_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Données pédagogiques partagées

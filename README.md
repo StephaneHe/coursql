@@ -1,91 +1,138 @@
 # coursSQL
 
-Application web interactive pour **apprendre le SQL progressivement**, destinée à un adulte débutant complet en bases de données. Pédagogie en **spirale** (peu de concepts neufs par leçon, réutilisation constante des acquis), validation **sur le résultat** et non sur le texte de la requête, exécution **sécurisée** de SQL non fiable.
+**An interactive SQL trainer that runs your queries for real — safely.**
 
-- **Version :** `1.7.3` (voir [`CHANGELOG.md`](./CHANGELOG.md))
-- **État :** **curriculum complet** — 50 cartes / 15 modules, du `SELECT` au projet final (jointures, sous-requêtes, transactions, DDL). Démarre automatiquement au boot (voir « Démarrage automatique » ci-dessous).
-- **UI en cartes** : une notion = une **carte** ; chaque carte porte un exercice **gating** dont la réussite débloque la carte suivante (15 modules / 50 cartes).
+coursSQL teaches SQL from the very first `SELECT` up to joins, subqueries, CTEs, transactions and DDL,
+through **50 bite-sized cards** across 15 modules. Every exercise is validated on the **result your
+query produces**, not on its text — so there is no single "expected string" to guess, and any correct
+query passes. Learners type real SQL against a real MySQL database; the interesting engineering is in
+letting them do that **on shared hosting with a single database account** without ever exposing the
+application's own data.
 
-## Lancer la tranche C1→C5
+**Live demo:** https://coursql.shoette.com
 
-> Toute la pile (MySQL 8.4 + API + front) tourne **dans WSL via Docker Compose** — l'API atteint MySQL par le réseau interne Compose, aucune frontière Windows↔WSL (voir DESIGN §12.4.c).
+> **Version 2.1.0.** The live app is the PHP port described below. A Node/Express implementation of the
+> same API is kept for one-command local development (see [Run it locally](#run-it-locally)).
 
-**Dans un terminal WSL**, à la racine du projet (monté depuis `<project>`) :
+<!-- TODO: add a screenshot/GIF of a card with the SQL editor + result table under docs/assets/ -->
+
+---
+
+## What it does
+
+- **Card-based curriculum.** One concept per card, spiral pedagogy (few new ideas per lesson, constant
+  reuse of prior ones). 50 cards / 15 modules, from `SELECT ... WHERE` to `GROUP BY`/`HAVING`, all join
+  kinds, `EXISTS`, CTEs (`WITH`), set operations (`UNION`/`INTERSECT`/`EXCEPT`), and a final project.
+- **Three kinds of gating exercise:**
+  - **quiz** — multiple choice, for pure-concept cards;
+  - **query** — write a `SELECT`; validated by comparing the *result set* against the expected one
+    (order- and column-name-sensitivity are configured per card);
+  - **mutation** (cards C42–C49) — `INSERT`/`UPDATE`/`DELETE` and DDL (`CREATE`/`ALTER`/`DROP TABLE`,
+    indexes, constraints, transactions) run in an **isolated per-user work database**, then validated on
+    the *final table state* via a hidden verification query that never reaches the client.
+- **Result-based validation with meaningful data.** Seed rows are chosen so a plausible-but-wrong
+  variant yields a *different* result (a row exactly on a `<` vs `<=` boundary, a `NULL` for `IS NULL`,
+  duplicates for `DISTINCT`, …), so passing means understanding the concept.
+- **Forgiving progression.** Unlimited attempts, per-card hints, and an on-demand solution (viewing it
+  does not auto-validate). Progress is tracked per learner; a card unlocks the next one.
+- **Pedagogical errors, never raw SQL errors.** A failed query maps to a teaching message; the raw
+  MySQL error text, DSN and stack traces are never sent to the browser.
+
+## Security model — the interesting part
+
+The whole point of coursSQL is executing **untrusted, learner-written SQL** against a live database.
+On OVH shared hosting there is exactly **one MySQL account and one database**, so the classic defence
+(a locked-down `executor` account with `SELECT`-only grants) is not available. coursSQL replaces it with
+an **application-level guard**, [`php/api/lib/SqlGuard.php`](php/api/lib/SqlGuard.php):
+
+1. **Preflight** — length cap, rejection of NUL/control characters, Unicode-space homoglyphs, and MySQL
+   executable comments (`/*! ... */`).
+2. **Parser-backed** — the SQL is lexed and parsed with a vendored `phpmyadmin/sql-parser`; anything
+   that does not parse to exactly one statement is rejected.
+3. **Positive allowlists** — keywords, functions and operators are **allow-listed**, not deny-listed.
+   Unknown tokens are blocked by default.
+4. **Mandatory table resolution** — every table reference must resolve through the card's
+   logical→physical name map. Unmapped names, qualified `db.table` names, and reserved physical prefixes
+   (`app_`, `seed_`, `wk_`) are refused — so `information_schema`, the app's own tables, and other users'
+   work tables are unreachable **by construction**, and each learner only ever sees prefixed table names.
+5. **Independent post-rewrite pass** — after rewriting logical names to physical ones, the guard
+   **re-lexes and re-validates the exact string that will be executed**, and re-checks that every table
+   is a physical name from the map. A rewrite bug therefore cannot smuggle anything through, because the
+   final string is verified on its own terms.
+6. **Driver backstop** — PDO runs with `MULTI_STATEMENTS` disabled and emulated prepares off, so
+   statement stacking cannot work even if the guard were bypassed.
+
+Mutating cards get an extra layer: each learner×card pair gets its own set of prefixed work tables,
+guarded by a short-lived DB lock, reset (`DROP`+`CREATE`+seed) before each attempt, and validated on a
+**separate connection** so an uncommitted transaction rolls back as intended.
+
+Additional hardening: HttpOnly + `SameSite=Lax` session cookies with strict-mode sessions and id
+regeneration on login; parameterised queries everywhere on the server side; security headers and
+deny-all rules for private files and `vendor/` in `.htaccess`; and **request rate limiting** (new in
+2.1.0) on account creation and on the SQL-execution/reset routes, returning HTTP 429 over quota.
+
+## Architecture
+
+```
+Browser ──HTTPS──> Apache (.htaccess front controller)
+                     ├── static React SPA (built assets)
+                     └── /api/*  ─> php/api/index.php  ──PDO──> single MySQL database
+                                     ├── SqlGuard (allowlist + rewrite + post-check)
+                                     ├── prefixed namespaces: app_* / seed_* / wk_*
+                                     └── card content loaded from cards.json (outside the webroot)
+```
+
+- **Single origin, no CORS.** The React client is served next to the API and calls `/api/*` relatively.
+- **Single database, namespaced by table prefix.** `app_*` = application state (users, progress,
+  attempts, locks, rate limits); `seed_*`/`seedref_*` = shared read-only teaching data; `wk_*` =
+  isolated per-user work tables for mutating cards.
+- **Secrets and answers stay out of the webroot.** DB credentials live in a private `config.local.php`;
+  full card content (with solutions and expected results) lives in a `cards.json` served from **outside**
+  the web root and denied by `.htaccess` in depth.
+
+## Tech stack
+
+- **Client:** React 18 + TypeScript, built with Vite.
+- **API (production):** PHP 8.1+ (8.3 in production), PDO/MySQL, native sessions.
+- **API (development):** Node.js + TypeScript (Express, `mysql2`) — same routes and contract.
+- **Database:** MySQL 8.4 (≥ 8.0.31 required for `INTERSECT`/`EXCEPT`).
+- **SQL parsing:** `phpmyadmin/sql-parser`.
+
+## Run it locally
+
+The quickest way to try coursSQL locally uses the **development stack** (the Node implementation of the
+same API) under Docker Compose:
 
 ```bash
-cp .env.example .env         # secrets DEV (à changer pour un vrai déploiement)
-docker compose up -d --build # construit le client + l'API, démarre MySQL (détaché)
-# Selon l'installation, le binaire est « docker-compose » (standalone) au lieu de « docker compose » :
-# docker-compose up -d --build
+cp .env.example .env          # dev-only credentials; change them for any real deployment
+docker compose up -d --build  # builds the React client + the API and starts MySQL
 ```
 
-> Démarrage à froid : l'API attend que MySQL accepte les connexions (quelques secondes de « waiting for MySQL » dans les logs), c'est normal. Vérifier : `curl http://localhost:8080/api/health`.
+Then open **http://localhost:8080** and create a profile. On a cold start the API waits a few seconds
+for MySQL to accept connections; check readiness with `curl http://localhost:8080/api/health`.
 
-Puis ouvrir **http://localhost:8080** (ou via the private network : **http://localhost:8080**).
+Suggested first run: create a profile → C1–C3 (quiz) → **C4** type `SELECT * FROM books;` → **C5**
+`SELECT title, year FROM books;`. Try a wrong query (e.g. `SELECT titre FROM books;`) to see a teaching
+error, or `UPDATE books SET year = 0;` on a read-only card to see it blocked.
 
-## Démarrage automatique (résilience au redémarrage du PC)
+Building and deploying the **production PHP port** (static client + PHP API + single-database schema for
+shared hosting) is documented in [`DEPLOY.md`](DEPLOY.md).
 
-coursSQL revient tout seul après un reboot Windows, sans intervention. Deux niveaux :
-
-1. **Démon Docker au boot de WSL** — `the host init config` (distro `linux-host`) contient une section `[boot]` unique qui, entre autres, lance `service docker start`. Dès que la distro WSL démarre, le démon Docker démarre (en **root**, pas de sudo interactif), puis les conteneurs `coursql-*` reviennent seuls grâce à `restart: unless-stopped`.
-
-   ```ini
-   [boot]
-   command = sysctl -w net.ipv4.ip_unprivileged_port_start=80; modprobe kvm_intel && chmod 666 /dev/kvm; service docker start
-   ```
-
-   > ⚠️ `host init config` n'accepte **qu'une seule** section `[boot]` avec **une seule** clé `command` : les commandes multiples sont chaînées par `;`. (Un doublon `[boot]` faisait auparavant que seule la dernière commande s'exécutait.) Ceci profite à **tous** les services WSL du services, pas qu'à coursSQL.
-
-2. **Réveil de WSL au logon Windows** — une **tâche planifiée** `startup-task` (déclencheur *ONLOGON*) exécute [`scripts/startup-script`](./scripts/startup-script), qui réveille la distro WSL (ce qui déclenche le `[boot]` ci-dessus), attend le démon Docker, puis fait un `docker-compose up -d` **idempotent** (filet de sécurité).
-
-   Recréer la tâche si besoin :
-   ```bash
-   a scheduled task //Create //TN "startup-task" \
-     //TR 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<project>\scripts\startup-script"' \
-     //SC ONLOGON //RL LIMITED //F
-   ```
-
-**Tester la résilience sans rebooter** : `wsl -e bash -c "sudo service docker stop"` puis `wsl.exe --shutdown` (état à froid), puis `a scheduled task //Run //TN "startup-task"` → Docker redémarre seul et `curl http://127.0.0.1:8080/api/health` répond `200`.
-
-Parcours de test : créer un profil → C1/C2/C3 (quiz) → **C4** taper `SELECT * FROM books;` → **C5** `SELECT title, year FROM books;`. Essaie une requête fausse (ex. `SELECT titre FROM books;`) pour voir le **message d'erreur pédagogique**, ou `UPDATE books SET year=0;` pour voir le **blocage par les privilèges** (executor en lecture seule).
-
-### Développement (hors Docker)
-
-```bash
-# terminal 1 — MySQL seul
-docker compose up mysql
-# terminal 2 — API (port 3000)
-cd api && npm install && npm run build && npm start
-# terminal 3 — client Vite (port 5173, proxy /api -> 3000)
-cd client && npm install && npm run dev
-```
-- **Conception détaillée :** [`docs/DESIGN.md`](./docs/DESIGN.md) — parcours pédagogique, exercices, architecture, sécurité, API.
-
-## Convention de langue
-
-- **Contenu pédagogique et interface** : français.
-- **Code, identifiants techniques, variables, commentaires** : anglais.
-
-## Pile technique cible
-
-React + TypeScript (client) · Node.js + TypeScript (API) · Nginx (reverse proxy) · MySQL 8.4 LTS · Docker Compose (local).
-
-## Isolation & sécurité (résumé)
-
-- Base **applicative** (`coursql_app`) séparée des **bases de travail** d'exercice (`ex_<hash>`, une par couple utilisateur × exercice).
-- **Trois comptes MySQL** à privilèges séparés : `coursql_app`, `coursql_provisioner`, `coursql_executor` (moindre privilège).
-- Le SQL de l'apprenant ne va **jamais** à un compte admin ; requêtes internes **paramétrées**.
-
-Voir [`docs/DESIGN.md`](./docs/DESIGN.md) pour les décisions, alternatives, conséquences et les sources officielles (MySQL 8.4, OWASP).
-
-## Structure
+## Project structure
 
 ```
-docs/            # DESIGN.md (conception détaillée, §12)
-db/init/         # SQL d'initialisation MySQL : schéma app, 3 comptes, base seed lecture seule
-api/             # API Node.js + TypeScript (Express, mysql2) — sert aussi le client en prod
-  src/content/   # contenu versionné des cartes (C1→C5 pour l'instant)
-client/          # client React + TypeScript (Vite) — UI en cartes
-Dockerfile       # build multi-étages : client + API -> image runtime
-docker-compose.yml
+php/                 # production PHP API (front controller, SqlGuard, routes) + vendored parser
+  api/lib/SqlGuard.php  # the security guard (worth a read)
+client/              # React + TypeScript SPA (Vite)
+api/                 # Node/TypeScript dev API + versioned card content (src/content/cards.ts)
+deploy/ovh/          # build scripts, single-database schema, migrations
+db/init/             # local MySQL init (schema, accounts, seed data) for the dev stack
+docs/                # DESIGN.md (detailed design & security rationale)
+docker-compose.yml   # one-command local dev stack
 ```
+
+## Documentation
+
+- [`docs/DESIGN.md`](docs/DESIGN.md) — detailed design: pedagogy, exercises, architecture, security,
+  and the API contract.
+- [`CHANGELOG.md`](CHANGELOG.md) — version history.

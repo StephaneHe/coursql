@@ -2,6 +2,13 @@
 declare(strict_types=1);
 
 $user = Auth::requireUser();
+RateLimit::enforce(
+    'exec',
+    $user['id'] . '|' . RateLimit::clientIp(),
+    45,
+    60,
+    "Trop d'exécutions d'affilée. Patiente quelques secondes avant de réessayer.",
+);
 $card = Cards::get($routeParams['slug']);
 if ($card === null) {
     Http::send(404, ['error' => 'not_found']);

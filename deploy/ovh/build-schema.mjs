@@ -69,10 +69,18 @@ const appLocks = `CREATE TABLE IF NOT EXISTS app_locks (
   PRIMARY KEY (lock_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`;
 
+const appRateLimit = `CREATE TABLE IF NOT EXISTS app_rate_limit (
+  bucket_key   VARCHAR(160) NOT NULL,
+  window_start DATETIME     NOT NULL,
+  hits         INT          NOT NULL DEFAULT 0,
+  PRIMARY KEY (bucket_key),
+  KEY idx_app_rate_limit_window (window_start)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`;
+
 const referenceCopies = seedNames.map((name) => `CREATE TABLE IF NOT EXISTS seedref_${name} LIKE seed_${name};
 INSERT INTO seedref_${name} SELECT * FROM seed_${name};`).join('\n\n');
 
-const schema = `-- coursSQL 2.0.0 — schéma mono-base pour OVH mutualisé.
+const schema = `-- coursSQL 2.1.0 — schéma mono-base pour OVH mutualisé.
 -- Généré par deploy/ovh/build-schema.mjs depuis db/init/*.sql.
 -- À importer dans la base existante : aucun CREATE/DROP DATABASE, USE ou CREATE USER.
 
@@ -86,6 +94,8 @@ ${appTable('user_progress', 'app_progress')}
 ${appTable('exercise_attempts', 'app_attempts')}
 
 ${appLocks}
+
+${appRateLimit}
 
 -- Données pédagogiques partagées
 ${seedNames.map(seedTable).join('\n\n')}

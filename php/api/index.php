@@ -6,6 +6,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 require __DIR__ . '/lib/Db.php';
 require __DIR__ . '/lib/Http.php';
 require __DIR__ . '/lib/SqlErrors.php';
+require __DIR__ . '/lib/RateLimit.php';
 require __DIR__ . '/lib/Auth.php';
 require __DIR__ . '/lib/Cards.php';
 require __DIR__ . '/lib/Compare.php';
