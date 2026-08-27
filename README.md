@@ -11,10 +11,13 @@ application's own data.
 
 **Live demo:** https://coursql.shoette.com
 
-> **Version 2.1.0.** The live app is the PHP port described below. A Node/Express implementation of the
+> **Version 2.2.1.** The live app is the PHP port described below. A Node/Express implementation of the
 > same API is kept for one-command local development (see [Run it locally](#run-it-locally)).
 
-<!-- TODO: add a screenshot/GIF of a card with the SQL editor + result table under docs/assets/ -->
+![coursSQL — a SELECT card with the lesson, the seed table and the progression sidebar](docs/screenshots/home.png)
+
+> The application UI is currently in French (a full English translation is planned); the screenshots
+> therefore show French labels in this English README.
 
 ---
 
@@ -37,6 +40,21 @@ application's own data.
   does not auto-validate). Progress is tracked per learner; a card unlocks the next one.
 - **Pedagogical errors, never raw SQL errors.** A failed query maps to a teaching message; the raw
   MySQL error text, DSN and stack traces are never sent to the browser.
+
+## Screenshots
+
+**Solving a query card** — write SQL in the editor, run it, and get validated on the actual result set:
+
+![A query card: SQL editor with SELECT title, year FROM books and a matching result table](docs/screenshots/exercise.png)
+
+**A mutation card (C42–C49)** — `INSERT`/`UPDATE`/`DELETE`/DDL run in an isolated per-user work table,
+validated on the final table state:
+
+![A mutation card: an INSERT statement executed against an isolated todo table, with the resulting rows](docs/screenshots/mutant-card.png)
+
+**Password authentication** — sign up or sign in with a password; profiles are never listed publicly:
+
+![The sign-up screen with name and password fields](docs/screenshots/auth.png)
 
 ## Security model — the interesting part
 
@@ -61,6 +79,11 @@ an **application-level guard**, [`php/api/lib/SqlGuard.php`](php/api/lib/SqlGuar
    final string is verified on its own terms.
 6. **Driver backstop** — PDO runs with `MULTI_STATEMENTS` disabled and emulated prepares off, so
    statement stacking cannot work even if the guard were bypassed.
+
+A forbidden statement is rejected cleanly with a teaching message instead of ever reaching the database
+— here a `DROP TABLE` on a read-only card:
+
+![A DROP TABLE statement rejected by SqlGuard on a read-only card, with a clear message](docs/screenshots/sqlguard-blocked.png)
 
 Mutating cards get an extra layer: each learner×card pair gets its own set of prefixed work tables,
 guarded by a short-lived DB lock, reset (`DROP`+`CREATE`+seed) before each attempt, and validated on a

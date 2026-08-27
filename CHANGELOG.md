@@ -3,6 +3,14 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.2.1] - 2026-08-27
+
+### Docs
+- **Screenshots in the README.** Five curated captures of the live site (`coursql.shoette.com`), taken
+  with Playwright/Chromium at 1440×2 DPR: home overview, solving a query card, an executed mutation
+  card, password sign-up, and a SqlGuard-blocked statement. Stored under `docs/screenshots/`, embedded
+  in the README with English alt text and captions. No sensitive data shown (neutral demo profile).
+
 ## [2.2.0] - 2026-08-27
 
 ### Added — password authentication (security)
