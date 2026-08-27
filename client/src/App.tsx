@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from './api';
 import type { Me, ProgressModule } from './types';
 import { Login } from './components/Login';
+import { ChangePassword } from './components/ChangePassword';
 import { ProgressMenu } from './components/ProgressMenu';
 import { CardView } from './components/CardView';
 
@@ -12,6 +13,7 @@ export function App() {
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [pwOpen, setPwOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -69,8 +71,11 @@ export function App() {
         <span className="brand">coursSQL</span>
         <span className="spacer" />
         <span className="who">👤 {me.display_name}</span>
+        <button className="ghost" onClick={() => setPwOpen(true)}>Mot de passe</button>
         <button className="ghost" onClick={logout}>Se déconnecter</button>
       </header>
+
+      {pwOpen && <ChangePassword onClose={() => setPwOpen(false)} />}
 
       <div className="app-body">
         <main className="content">

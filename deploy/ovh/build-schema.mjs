@@ -80,7 +80,7 @@ const appRateLimit = `CREATE TABLE IF NOT EXISTS app_rate_limit (
 const referenceCopies = seedNames.map((name) => `CREATE TABLE IF NOT EXISTS seedref_${name} LIKE seed_${name};
 INSERT INTO seedref_${name} SELECT * FROM seed_${name};`).join('\n\n');
 
-const schema = `-- coursSQL 2.1.0 — schéma mono-base pour OVH mutualisé.
+const schema = `-- coursSQL 2.2.0 — schéma mono-base pour OVH mutualisé.
 -- Généré par deploy/ovh/build-schema.mjs depuis db/init/*.sql.
 -- À importer dans la base existante : aucun CREATE/DROP DATABASE, USE ou CREATE USER.
 

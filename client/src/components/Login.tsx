@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '../api';
 import type { Me } from '../types';
 
@@ -6,28 +6,24 @@ interface LoginProps {
   onAuth: (me: Me) => void;
 }
 
-// Home page = account picker. Each existing profile is a small clickable card; clicking it
-// opens that profile's session (by name, no password — see DESIGN §7). A "+ Nouveau profil"
-// card reveals a field to create a new profile.
+// Home page = name + password. Profiles are no longer listed before authentication
+// (anti-enumeration), and a profile can only be opened with its password.
 export function Login({ onAuth }: LoginProps) {
-  const [accounts, setAccounts] = useState<Me[] | null>(null);
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState('');
 
-  useEffect(() => {
-    api
-      .accounts()
-      .then((r) => setAccounts(r.accounts))
-      .catch(() => setAccounts([]));
-  }, []);
-
-  async function pick(displayName: string) {
+  async function submit() {
+    if (!name.trim() || !password) return;
     setError(null);
     setBusy(true);
     try {
-      const me = await api.login(displayName);
+      const me =
+        mode === 'login'
+          ? await api.login(name, password)
+          : await api.createUser(name, password);
       onAuth(me);
     } catch (e) {
       setError((e as Error).message);
@@ -35,16 +31,10 @@ export function Login({ onAuth }: LoginProps) {
     }
   }
 
-  async function create() {
+  function switchMode(next: 'login' | 'register') {
+    setMode(next);
     setError(null);
-    setBusy(true);
-    try {
-      const me = await api.createUser(name);
-      onAuth(me);
-    } catch (e) {
-      setError((e as Error).message);
-      setBusy(false);
-    }
+    setPassword('');
   }
 
   return (
@@ -52,59 +42,61 @@ export function Login({ onAuth }: LoginProps) {
       <h1>coursSQL</h1>
       <p className="subtitle">Apprendre le SQL pas à pas, à ton rythme.</p>
 
-      <h2 className="home-section">Qui es-tu ?</h2>
-
-      <div className="account-grid">
-        {(accounts ?? []).map((a) => (
-          <button
-            key={a.user_id}
-            className="account-card"
-            disabled={busy}
-            onClick={() => pick(a.display_name)}
-          >
-            <span className="account-avatar" aria-hidden="true">
-              {a.display_name.slice(0, 1).toUpperCase()}
-            </span>
-            <span className="account-name">{a.display_name}</span>
-          </button>
-        ))}
-
-        {!creating && (
-          <button className="account-card account-new" disabled={busy} onClick={() => setCreating(true)}>
-            <span className="account-avatar" aria-hidden="true">＋</span>
-            <span className="account-name">Nouveau profil</span>
-          </button>
-        )}
+      <div className="auth-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={mode === 'login'}
+          className={mode === 'login' ? 'auth-tab active' : 'auth-tab'}
+          onClick={() => switchMode('login')}
+        >
+          Se connecter
+        </button>
+        <button
+          role="tab"
+          aria-selected={mode === 'register'}
+          className={mode === 'register' ? 'auth-tab active' : 'auth-tab'}
+          onClick={() => switchMode('register')}
+        >
+          Créer un profil
+        </button>
       </div>
 
-      {accounts !== null && accounts.length === 0 && !creating && (
-        <p className="muted">Aucun profil pour l'instant — crée le premier ci-dessus.</p>
-      )}
+      <div className="create-box">
+        <label htmlFor="name">Ton prénom ou pseudo</label>
+        <input
+          id="name"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="ex. Camille"
+          maxLength={40}
+          autoComplete="username"
+        />
 
-      {creating && (
-        <div className="create-box">
-          <label htmlFor="name">Ton prénom ou pseudo</label>
-          <input
-            id="name"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="ex. Camille"
-            maxLength={40}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && name.trim()) create();
-            }}
-          />
-          <div className="create-actions">
-            <button className="run" disabled={busy || !name.trim()} onClick={create}>
-              Créer mon profil
-            </button>
-            <button className="ghost" disabled={busy} onClick={() => { setCreating(false); setName(''); }}>
-              Annuler
-            </button>
-          </div>
+        <label htmlFor="password">Mot de passe</label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={mode === 'register' ? 'au moins 4 caractères' : 'ton mot de passe'}
+          maxLength={128}
+          autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && name.trim() && password) submit();
+          }}
+        />
+
+        <div className="create-actions">
+          <button className="run" disabled={busy || !name.trim() || !password} onClick={submit}>
+            {mode === 'login' ? 'Se connecter' : 'Créer mon profil'}
+          </button>
         </div>
-      )}
+
+        {mode === 'register' && (
+          <p className="muted">Choisis un mot de passe : il te servira à retrouver ta progression.</p>
+        )}
+      </div>
 
       {error && <p className="error-text" role="alert">{error}</p>}
     </div>

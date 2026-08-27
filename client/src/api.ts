@@ -20,10 +20,15 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 export const api = {
   me: () => request<{ user: Me | null }>('GET', '/api/me'),
   accounts: () => request<{ accounts: Me[] }>('GET', '/api/accounts'),
-  createUser: (display_name: string) =>
-    request<Me>('POST', '/api/users', { display_name }),
-  login: (display_name: string) =>
-    request<Me>('POST', '/api/sessions', { display_name }),
+  createUser: (display_name: string, password: string) =>
+    request<Me>('POST', '/api/users', { display_name, password }),
+  login: (display_name: string, password: string) =>
+    request<Me>('POST', '/api/sessions', { display_name, password }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ ok: boolean; messageFr: string }>('POST', '/api/password', {
+      current_password,
+      new_password,
+    }),
   logout: () => request<void>('DELETE', '/api/sessions/current'),
   progress: () => request<{ modules: ProgressModule[] }>('GET', '/api/progress'),
   card: (slug: string) =>

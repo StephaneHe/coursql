@@ -126,8 +126,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .create-box { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
 .create-box label { display: block; font-weight: 600; margin-bottom: 6px; }
 .create-box input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 16px; }
+.create-box input + label { margin-top: 14px; }
 .create-actions { display: flex; gap: 10px; margin-top: 12px; }
 .muted { color: var(--muted); }
+
+/* Auth tabs (login / register) */
+.auth-tabs { display: flex; gap: 8px; margin-top: 22px; border-bottom: 1px solid var(--line); }
+.auth-tab {
+  background: none; border: none; padding: 10px 14px; font-size: 16px; font-weight: 600;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Modal (change password) */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+}
+.modal {
+  background: #fff; border-radius: 12px; padding: 18px 20px 22px;
+  width: 100%; max-width: 420px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+.modal .create-box { margin-top: 4px; border-top: none; padding-top: 4px; }
 
 /* App shell */
 .app-loading { padding: 40px; }

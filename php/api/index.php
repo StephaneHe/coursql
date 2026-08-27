@@ -43,6 +43,7 @@ $routes = [
     'POST /users' => 'users_create.php',
     'POST /sessions' => 'session_login.php',
     'GET /me' => 'me.php',
+    'POST /password' => 'password_change.php',
     'DELETE /sessions/current' => 'session_logout.php',
     'GET /progress' => 'progress.php',
 ];

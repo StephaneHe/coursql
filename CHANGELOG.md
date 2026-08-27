@@ -3,6 +3,26 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.2.0] - 2026-08-27
+
+### Added — password authentication (security)
+- **Passwords on every profile.** `POST /api/users` now requires a password (min 4 chars), hashed with
+  `password_hash()` (`PASSWORD_DEFAULT` — bcrypt, argon2id where available). Plaintext passwords are
+  never stored, logged or returned by any route. New column `app_users.password_hash`.
+- **Real login.** `POST /api/sessions` verifies the password with `password_verify()`; a generic
+  "name or password incorrect" message avoids profile enumeration, and a constant-time dummy verify is
+  run for unknown names. **Impersonation is gone**: a profile cannot be opened without its password.
+- **Account list is now gated.** `GET /api/accounts` requires an authenticated session; the login
+  screen no longer lists profiles (it's a name + password form).
+- **Change password.** New `POST /api/password` (authenticated) requires the current password and a
+  valid new one.
+- **Brute-force protection.** Login and password-change go through the 2.1.0 rate limiter
+  (10 / 5 min per IP, resp. per user+IP).
+- **Existing accounts migrated** to `password = their login` (idempotent), so they can sign in and then
+  change it. Column add is idempotent via `information_schema`
+  (`deploy/ovh/migrations/2.2.0_password_auth.sql`); the password backfill runs in PHP.
+- **UI:** password field on sign-up and login, plus a "change password" dialog.
+
 ## [2.1.0] - 2026-08-27
 
 ### Added — request rate limiting (security)

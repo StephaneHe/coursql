@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   id              CHAR(36)     NOT NULL,
   display_name    VARCHAR(40)  NOT NULL,
   name_normalized VARCHAR(40)  NOT NULL,
+  password_hash   VARCHAR(255) NULL,
   created_at      DATETIME     NOT NULL,
   last_active_at  DATETIME     NULL,
   PRIMARY KEY (id),
