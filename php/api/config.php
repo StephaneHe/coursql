@@ -28,17 +28,26 @@ function coursql_config(): array
         return $default;
     };
 
+    // Secure cookies whenever the request is served over HTTPS (Let's Encrypt in prod), while a
+    // plain-HTTP local dev keeps them off so the session cookie is still stored. An explicit
+    // COOKIE_SECURE env/config value always wins.
+    $httpsOn = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== '' && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
+
     return [
-        'version' => '2.2.1',
+        'version' => '2.3.0',
         'db_host' => (string) $read(['host', 'OVH_SERVER_ADD', 'DB_HOST'], '127.0.0.1'),
         'db_port' => (int) $read(['port', 'DB_PORT'], 3306),
         'db_name' => (string) $read(['name', 'OVH_DB_NAME', 'DB_NAME']),
         'db_user' => (string) $read(['user', 'OVH_DB_USER', 'DB_USER']),
         'db_pass' => (string) $read(['password', 'OVH_DB_PASSWORD', 'DB_PASSWORD']),
         'cards_path' => $privateDir . '/cards.json',
+        // Dedicated, private session store so a shared-host global GC cannot reap our 30-day sessions.
+        'session_path' => $privateDir . '/sessions',
         'query_timeout_ms' => (int) $read(['QUERY_TIMEOUT_MS'], 3000),
         'max_rows' => (int) $read(['MAX_ROWS_RETURNED'], 1000),
         'max_sql_len' => (int) $read(['MAX_SQL_LENGTH'], 4000),
-        'cookie_secure' => filter_var($read(['COOKIE_SECURE'], false), FILTER_VALIDATE_BOOL),
+        'cookie_secure' => filter_var($read(['COOKIE_SECURE'], $httpsOn), FILTER_VALIDATE_BOOL),
     ];
 }

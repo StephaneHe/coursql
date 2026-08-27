@@ -372,7 +372,7 @@ Contenu, dans cet ordre :
    `seed_employees` — **structures et données reprises telles quelles** de `db/init/03-seed-books.sql`
    (données calibrées, cf. §1.4), simplement renommées.
 4. **Tables de référence** `seedref_*` (mêmes données, §3.6).
-5. Optionnel : `INSERT` du profil `Alex` (sinon créé via l'UI).
+5. Optionnel : `INSERT` d'un profil de démarrage (sinon créé via l'UI).
 
 **Pas de tables `wk_*` dans le dump** : elles sont créées à la volée par `Workspace`.
 
@@ -398,8 +398,8 @@ Script de génération conseillé : `deploy/ovh/build-schema.mjs` (Node, one-sho
 
 ### 5.2 Déploiement SFTP (procédure sûre — impérative)
 
-- Identifiants dans **`<deploy-env>`** : `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `DEPLOY_PASSWORD`,
-  `DEPLOY_PROTOCOL=sftp`. **Nettoyer les CRLF** à la lecture (`tr -d '\r'`).
+- Identifiants lus depuis un fichier d'environnement **hors dépôt** (jamais committé). **Nettoyer les
+  CRLF** à la lecture (`tr -d '\r'`).
 - `lftp` en sftp, **non interactif** : `set sftp:auto-confirm yes`.
 - Mot de passe passé **via l'entrée du client ou une variable d'environnement**, **jamais** en
   argument de ligne de commande, **jamais** `echo`/`set -x`/`cat`, **jamais** dans un log.
@@ -423,7 +423,7 @@ Script de génération conseillé : `deploy/ovh/build-schema.mjs` (Node, one-sho
 | 2 | **Export du contenu** : script Node one-shot `deploy/ovh/export-cards.mjs` | `private/cards.json` (50 cartes, solutions + expected + schema/seed mutants + `tables` logiques) | JSON valide, 50 cartes, aucune perte de champ |
 | 3 | **Dump schéma** : `deploy/ovh/build-schema.mjs` | `deploy/ovh/schema.sql` | import local dans un MySQL vierge sans erreur |
 | 4 | **Socle PHP** : `api/index.php` (routeur), `config.php`, `lib/Db.php`, `lib/SqlErrors.php` | squelette | `GET /api/health` renvoie `{ok:true,version:"2.0.0"}` |
-| 5 | **Auth & progression** : `lib/Auth.php`, `lib/Progress.php`, routes `users`, `sessions`, `me`, `accounts`, `progress` | 5 routes | login `Alex`, `/api/progress` renvoie 50 cartes, gating identique |
+| 5 | **Auth & progression** : `lib/Auth.php`, `lib/Progress.php`, routes `users`, `sessions`, `me`, `accounts`, `progress` | 5 routes | login d'un profil, `/api/progress` renvoie 50 cartes, gating identique |
 | 6 | **Contenu & cartes** : `lib/Cards.php`, routes `card_get`, `card_next`, `hint`, `solution` | 4 routes | la carte C1 s'affiche ; `solution` ne valide pas la carte |
 | 7 | **Comparaison** : `lib/Compare.php` (port de `compare.ts` : multi-ensemble, ordre optionnel, NULL distinct, DECIMAL exact) | lib | tests unitaires (§7 test 3) |
 | 8 | ⭐ **Garde SQL** : `lib/SqlGuard.php` (parser vendored, allowlists, résolution+réécriture, contrôle post-réécriture) | lib + `vendor/` | **suite d'évasion (§7 test 5) : tout doit être refusé** |
@@ -444,7 +444,7 @@ Jalons de commit conseillés : après chaque étape (`feat(php): …`), version 
 
 1. **Santé & front** : `GET /api/health` = 200 ; la page d'accueil se charge ; la grille de comptes
    s'affiche.
-2. **Login** : cliquer le compte `Alex` ⇒ session ouverte, `/api/progress` renvoie les 50 cartes
+2. **Login** : se connecter à un profil ⇒ session ouverte, `/api/progress` renvoie les 50 cartes
    avec les bons statuts (C1 `available`, suite `locked` pour un profil neuf).
 3. **Carte SELECT simple (C4)** : `SELECT * FROM members;` ⇒ `pass`, carte validée, C5 débloquée.
    Vérifier aussi qu'une **variante naïve échoue** là où le concept l'exige :

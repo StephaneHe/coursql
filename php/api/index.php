@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// Never leak internals to the client (DSN, paths, stack traces): errors are logged server-side only.
+// Enforced in code, not only via .ovhconfig, so a misapplied host override cannot expose details.
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
 require __DIR__ . '/config.php';
 require dirname(__DIR__) . '/vendor/autoload.php';
 require __DIR__ . '/lib/Db.php';

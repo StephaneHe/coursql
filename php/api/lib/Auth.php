@@ -12,10 +12,25 @@ final class Auth
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
+        // Keep session files in a private, app-owned directory (outside the webroot) so the shared
+        // host's global session GC — often a 24-minute gc_maxlifetime — cannot delete our long-lived
+        // sessions. Falls back to the default save path if the directory cannot be created.
+        $sessionPath = (string) ($config['session_path'] ?? '');
+        if ($sessionPath !== '') {
+            if (!is_dir($sessionPath)) {
+                @mkdir($sessionPath, 0700, true);
+            }
+            if (is_dir($sessionPath) && is_writable($sessionPath)) {
+                session_save_path($sessionPath);
+                ini_set('session.save_path', $sessionPath);
+            }
+        }
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         ini_set('session.cookie_httponly', '1');
         ini_set('session.cookie_samesite', 'Lax');
+        // 30-day sessions: GC lifetime and cookie lifetime kept coherent so a logged-in learner
+        // stays connected for ~a month without re-authenticating.
         ini_set('session.gc_maxlifetime', (string) (30 * 24 * 60 * 60));
         session_name('coursql_sid');
         session_set_cookie_params([

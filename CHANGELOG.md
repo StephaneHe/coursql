@@ -3,6 +3,31 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.3.0] - 2026-08-27
+
+### Added — 30-day sessions
+- Authenticated sessions now last **~30 days**: cookie lifetime and `session.gc_maxlifetime` are kept
+  coherent, so a learner stays signed in for about a month. Session files are stored in a **private,
+  app-owned directory** outside the webroot, so the shared host's global session GC (often a
+  24-minute lifetime) cannot reap our long-lived sessions early.
+
+### Security — remaining audit hardening
+- **`display_errors` forced off in code** (`php/api/index.php`), not only via `.ovhconfig`: errors are
+  logged server-side and never rendered to the client (no DSN, paths or stack traces). A misapplied
+  host override can no longer leak internals.
+- **`COOKIE_SECURE` now defaults to on over HTTPS**: the session cookie is `Secure` whenever the
+  request is served over HTTPS (auto-detected via `HTTPS`/`X-Forwarded-Proto`/port 443), while local
+  plain-HTTP development keeps it off so the cookie is still stored. An explicit `COOKIE_SECURE` value
+  still wins. Cookies remain `HttpOnly` + `SameSite=Lax`.
+
+### Docs
+- Scrubbed private-infrastructure references from tracked files ahead of making the repository public:
+  removed a deploy-credential file path and deploy variable names, the private hostname, the
+  private-network name and private IP, and host-specific startup-automation details, from
+  `docs/PLAN_PHP_PORT.md`, `docs/DESIGN.md`, `CHANGELOG.md`, `docker-compose.yml`, `.env.example`
+  and `api/src/config.ts`; deleted the host-specific startup script under `scripts/`. The public demo
+  domain `coursql.shoette.com` is intentionally kept.
+
 ## [2.2.1] - 2026-08-27
 
 ### Docs
@@ -188,26 +213,22 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; ve
 ## [1.7.3] - 2026-08-15
 
 ### Added — résilience au redémarrage
-- **Démarrage automatique de la pile après reboot Windows**, sur deux niveaux :
-  - `the host init config` (`linux-host`) : section `[boot]` **unique** exécutant (entre autres) `service docker start` → le démon Docker démarre au boot de WSL (en root), puis les conteneurs reviennent seuls via `restart: unless-stopped`.
-  - Tâche planifiée Windows `startup-task` (déclencheur *ONLOGON*) → `scripts/startup-script` réveille WSL (déclenche le `[boot]`), attend le démon Docker, puis `docker-compose up -d` idempotent.
-- Nouveau `scripts/startup-script` ; section « Démarrage automatique » dans le README.
-
-### Fixed
-- **`the host init config` avait deux sections `[boot]`** (invalide : seule la dernière s'exécutait, donc le `sysctl` de ports non privilégiés était perdu). Fusionné en une seule section `[boot]` chaînant `sysctl … ; modprobe kvm_intel && chmod 666 /dev/kvm ; service docker start` — bénéficie à **tous** les services WSL du services.
+- **Démarrage automatique de la pile après un redémarrage de l'hôte** : le démon Docker démarre au boot,
+  puis les conteneurs reviennent seuls via `restart: unless-stopped` (aucune intervention manuelle).
 
 ### Proof
-- Résilience prouvée sans reboot : `service docker stop` + `wsl --shutdown` (état à froid) → déclenchement de la tâche → Docker redémarre **automatiquement** via `[boot]`, conteneurs `courssql-mysql-1`/`courssql-app-1` `Up`/healthy, `GET /api/health` = 200, login Alex OK. Données (volumes) préservées.
+- Résilience prouvée à froid (arrêt Docker + redémarrage) : les conteneurs `courssql-mysql-1`/`courssql-app-1`
+  reviennent `Up`/healthy, `GET /api/health` = 200, login OK, données (volumes) préservées.
 
 ## [1.7.2] - 2026-08-15
 
 ### Fixed
-- **Carte C18 « ORDER BY DESC et deuxième clé » — données ne révélaient pas le concept** : la 2ᵉ clé était `id ASC` (= l'ordre naturel InnoDB), donc `ORDER BY year DESC, id` donnait le même résultat que `ORDER BY year DESC` seul. Correctif : 2ᵉ clé passée à **`title ASC`**, et le livre id 4 (ex-æquo 1943 avec id 2) renommé **« Courrier Sud »** (Saint-Exupéry) — un titre qui trie AVANT « Le Petit Prince ». Ainsi les ex-æquo sont réordonnés par rapport à l'ordre d'id : `year DESC` seul ≠ `year DESC, title ASC` (vérifié via l'API : la variante à une clé échoue). Seed appliqué à la base en cours sans effacer le profil Alex ; expected de C5/C9/C10/C13/C22/C24/C35 mis à jour (id 4). Jointures non impactées (book 4 n'est pas emprunté).
+- **Carte C18 « ORDER BY DESC et deuxième clé » — données ne révélaient pas le concept** : la 2ᵉ clé était `id ASC` (= l'ordre naturel InnoDB), donc `ORDER BY year DESC, id` donnait le même résultat que `ORDER BY year DESC` seul. Correctif : 2ᵉ clé passée à **`title ASC`**, et le livre id 4 (ex-æquo 1943 avec id 2) renommé **« Courrier Sud »** (Saint-Exupéry) — un titre qui trie AVANT « Le Petit Prince ». Ainsi les ex-æquo sont réordonnés par rapport à l'ordre d'id : `year DESC` seul ≠ `year DESC, title ASC` (vérifié via l'API : la variante à une clé échoue). Seed appliqué à la base en cours sans effacer le profil existant ; expected de C5/C9/C10/C13/C22/C24/C35 mis à jour (id 4). Jointures non impactées (book 4 n'est pas emprunté).
 
 ## [1.7.1] - 2026-08-15
 
 ### Changed
-- **Purge des comptes** : suppression de tous les comptes de test de la base en cours (ne reste que `Alex`), avec leurs données liées (`user_sessions`, `exercise_attempts`, `user_progress`) via le compte applicatif ; nettoyage des bases de travail isolées `ex_*` orphelines via le provisioner. (L'init `db/init/*` ne crée aucun compte : une install fraîche démarre sans profil.)
+- **Purge des comptes** : suppression de tous les comptes de test de la base en cours (ne reste que le compte principal), avec leurs données liées (`user_sessions`, `exercise_attempts`, `user_progress`) via le compte applicatif ; nettoyage des bases de travail isolées `ex_*` orphelines via le provisioner. (L'init `db/init/*` ne crée aucun compte : une install fraîche démarre sans profil.)
 - **UI** : retrait du message « Il n'y a pas de mot de passe… usage de confiance » sur la page d'accueil / sélecteur de comptes.
 
 ## [1.7.0] - 2026-08-15
@@ -253,7 +274,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; ve
 ## [1.3.0] - 2026-08-15
 
 ### Fixed
-- **Page vide après connexion (bug bloquant)** : le cookie de session était émis avec l'attribut **`Secure`** (car `NODE_ENV=production`). Sur du **HTTP** (`http://localhost:8080`, réseau the private network privé), les navigateurs **refusent de stocker un cookie Secure** → le client n'était jamais authentifié → `/api/progress` renvoyait `401` → ni cartes ni menu. Le smoke-test curl ne l'avait pas vu (curl ignore la contrainte). Correctif : attribut `Secure` **configurable** via `COOKIE_SECURE` (défaut `false` ici ; passer `true` uniquement derrière HTTPS/Nginx). Robustesse client : état d'erreur affiché au lieu d'une page blanche.
+- **Page vide après connexion (bug bloquant)** : le cookie de session était émis avec l'attribut **`Secure`** (car `NODE_ENV=production`). Sur du **HTTP** (réseau privé), les navigateurs **refusent de stocker un cookie Secure** → le client n'était jamais authentifié → `/api/progress` renvoyait `401` → ni cartes ni menu. Le smoke-test curl ne l'avait pas vu (curl ignore la contrainte). Correctif : attribut `Secure` **configurable** via `COOKIE_SECURE` (défaut `false` ici ; passer `true` uniquement derrière HTTPS/Nginx). Robustesse client : état d'erreur affiché au lieu d'une page blanche.
 
 ### Added
 - **Page d'accueil = sélecteur de comptes en cartes** : nouvel endpoint public `GET /api/accounts` (liste `display_name` + id interne, **jamais de secret**) ; l'accueil affiche une **grille de cartes-comptes cliquables** (clic = ouverture de session par nom, sans mot de passe, §7) + une carte **« ＋ Nouveau profil »**.
@@ -263,8 +284,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; ve
 ### Fixed
 - **Encodage UTF-8 du seed** : le chargement des scripts d'init MySQL se faisait sur une session latin1, ce qui double-encodait les accents (`Les Misérables` → `Les MisÃ©rables`) et faisait échouer la validation de C4/C5. Ajout de `SET NAMES utf8mb4;` en tête des fichiers `db/init/*.sql`. Vérifié de bout en bout après recréation du volume.
 
-### Verified (smoke test end-to-end, pile Docker dans WSL)
-- Pile `up` (MySQL healthy + API), page servie sur `http://localhost:8080` et `http://localhost:8080` (the private network, IP 10.0.0.0).
+### Verified (smoke test end-to-end, pile Docker)
+- Pile `up` (MySQL healthy + API), page servie sur `http://localhost:8080`.
 - Quiz C1–C3 valident + **gating** débloque la carte suivante ; carte verrouillée → `403`.
 - C4 `SELECT * FROM books` → **pass** (accents corrects, NULL préservé) ; C5 `SELECT title, year` → **pass**.
 - `UPDATE books …` → **bloqué** par privilèges (executor lecture seule) ; colonne inconnue → **erreur pédagogique FR** ; multi-statements → refusé.
@@ -272,8 +293,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; ve
 ## [1.2.0] - 2026-08-15
 
 ### Added
-- **Décisions figées** (DESIGN §12.0) : portée MVP = tranche verticale **C1→C5** d'abord ; gating **bienveillant** (essais illimités, aucun verrouillage) ; **prérequis visibles** par carte (`cards.prerequisites`, informatif) ; **archivage du texte** des tentatives (`exercise_attempts.submitted_sql`) ; **affichage des erreurs SQL** pédagogiques (exigence UX) ; locale **FR unique** + mots-clés **EN** ; déploiement **mono-serveur WSL + the private network** ; **pas de reaper** (instance réutilisée/réinitialisée) ; constantes d'exécution par défaut (timeout 3 s, cap 1000 lignes, SQL ≤ 4000 car.).
-- **Topologie de déploiement** (DESIGN §12.4.c) : toute la pile (MySQL + API + front) dans **WSL via Docker Compose**, API↔MySQL par réseau interne Compose (aucune frontière Windows↔WSL), port publié exposé via the private network (`<host>:<port>`).
+- **Décisions figées** (DESIGN §12.0) : portée MVP = tranche verticale **C1→C5** d'abord ; gating **bienveillant** (essais illimités, aucun verrouillage) ; **prérequis visibles** par carte (`cards.prerequisites`, informatif) ; **archivage du texte** des tentatives (`exercise_attempts.submitted_sql`) ; **affichage des erreurs SQL** pédagogiques (exigence UX) ; locale **FR unique** + mots-clés **EN** ; déploiement **mono-serveur Docker Compose** ; **pas de reaper** (instance réutilisée/réinitialisée) ; constantes d'exécution par défaut (timeout 3 s, cap 1000 lignes, SQL ≤ 4000 car.).
+- **Topologie de déploiement** (DESIGN §12.4.c) : toute la pile (MySQL + API + front) via **Docker Compose**, API↔MySQL par réseau interne Compose, port publié sur le réseau privé de l'hôte.
 - **Implémentation — tranche verticale (Phase B)** : scaffold Docker Compose (MySQL 8.4), API Node/TS (sessions, cards, execute, hint, solution, progression), client React/TS (UI en cartes avec zone prérequis, éditeur SQL, résultat/erreur), 3 comptes MySQL (moindre privilège), base seed lecture seule, cartes **C1→C5**.
 
 ### Changed

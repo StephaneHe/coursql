@@ -41,8 +41,7 @@ export const config = {
   },
   sessionSecret: process.env.SESSION_SECRET ?? 'dev_session_secret_change_me',
   // The session cookie must NOT be Secure when served over plain HTTP (browsers drop Secure
-  // cookies on http://). This deployment is HTTP over a private the private network network, so default
-  // false. Set COOKIE_SECURE=true only behind HTTPS/Nginx (DESIGN §12.4.c hardening).
+  // cookies on http://), so local dev defaults to false. Set COOKIE_SECURE=true behind HTTPS.
   cookieSecure: (process.env.COOKIE_SECURE ?? 'false') === 'true',
   // Execution safety constants (DESIGN §12.4.b)
   queryTimeoutMs: Number(process.env.QUERY_TIMEOUT_MS ?? 3000),

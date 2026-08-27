@@ -1,7 +1,6 @@
-# coursSQL — mono-server stack, meant to run INSIDE WSL via Docker Compose.
+# coursSQL — single-host stack for local development via Docker Compose.
 # API and MySQL share the "coursql" network; the API reaches MySQL by service name
-# (mysql:3306) — no Windows<->WSL boundary. Only the app port is published to the host,
-# then reachable over the private network (e.g. http://localhost:8080).
+# (mysql:3306). Only the app port is published to the host (http://localhost:8080).
 
 services:
   mysql:

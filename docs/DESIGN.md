@@ -25,7 +25,7 @@ Réponses de l'utilisateur aux questions ouvertes, désormais **actées** et ref
 | **Archivage tentatives** | On **archive le texte** de chaque tentative dans `exercise_attempts` (SQL soumis, horodatage, résultat/erreur). | §12.5 |
 | **Erreurs SQL affichées** | **Exigence UX ferme** : si MySQL renvoie une erreur, on **affiche** un message pédagogique lisible (sans fuite de structure interne) pour corriger. La zone résultat montre **soit** le résultat **soit** l'erreur. | §12.7, §12.11 |
 | **Locale** | **FR unique** (pas de multi-locale). Les **mots-clés/concepts techniques** restent en **anglais MySQL** (`SELECT`, `WHERE`, `JOIN`, `NULL`, `DECIMAL`…) — pas de traduction inventée. | §12.1 |
-| **Déploiement** | **Mono-serveur** sur cette machine, exposé via **the private network** (`<host>:<port>`). Toute la pile (**MySQL + API + front**) tourne **dans WSL via Docker Compose** → l'API atteint MySQL par le **réseau interne Compose** (nom de service), **aucune frontière Windows↔WSL** à franchir. | §12.4, §12.4.c |
+| **Déploiement** | **Mono-serveur**, exposé sur le réseau privé de l'hôte (`<host>:<port>`). Toute la pile (**MySQL + API + front**) tourne **via Docker Compose** → l'API atteint MySQL par le **réseau interne Compose** (nom de service). | §12.4, §12.4.c |
 | **Nettoyage** | **Aucun reaper** au MVP. Conséquence maîtrisée : **une instance mutante par (user × exercice), réutilisée/réinitialisée** à la revisite → borné par `users × cartes-mutantes`, pas de création répétée. | §12.5, §12.8, §12.11 |
 | **Instances mutantes simultanées** | Défaut : pool `EXECUTOR` `MAX_USER_CONNECTIONS = 20` ; provisioning sérialisé par `GET_LOCK`. Borne réelle = réutilisation (pas de prolifération). | §12.9 |
 | **Timeouts / caps** | Défaut : **timeout requête apprenant = 3000 ms** ; **cap lignes retournées = 1000** ; **taille max requête = 4000 caractères** ; **multi-statements désactivés** ; **une instruction/soumission**. | §12.4.b |
@@ -467,26 +467,26 @@ Trois options ont été pesées. Rappel du critère : le SQL de l'apprenant est 
 - **Conséquences** : deux familles de bases à gérer (seed partagées vs travail par-user) — géré par le champ `permissions`/`role` du manifeste (§12.6) et l'aiguillage de l'orchestrateur. Une base seed partagée doit rester **strictement** en lecture seule (garanti par les GRANT, §12.9) ; si un jour un exercice « SELECT » devait écrire, il bascule en famille mutante.
 - **Évolution à l'échelle (post-MVP, §12.13)** : (i) **warm pool** de bases `ex_*` pré-provisionnées pour masquer la latence ; (ii) **sharding** sur plusieurs instances MySQL ; (iii) pour une charge **réellement hostile / multi-tenant public**, revenir vers une isolation type (c) — mais alors avec l'**EXECUTOR déployé DANS WSL/Linux** (à côté de Docker), supprimant la frontière Windows↔WSL, plutôt que piloté depuis Windows.
 
-### 12.4.c — Topologie de déploiement (mono-serveur, WSL, the private network)
+### 12.4.c — Topologie de déploiement (mono-serveur, Docker Compose)
 
-**Décision** : **toute la pile tourne dans WSL via Docker Compose** — pas seulement MySQL. Ainsi l'API et MySQL sont **deux conteneurs sur le même réseau Compose** ; l'API joint MySQL par **nom de service** (`mysql:3306`), **jamais** par une IP de VM WSL depuis Windows.
+**Décision** : **toute la pile tourne via Docker Compose** — pas seulement MySQL. Ainsi l'API et MySQL sont **deux conteneurs sur le même réseau Compose** ; l'API joint MySQL par **nom de service** (`mysql:3306`), **jamais** par une IP d'hôte.
 
 ```
-Client (navigateur, via the private network)
-        │  http(s)://localhost:8080
+Client (navigateur)
+        │  http(s)://<host>:8080
         ▼
-[ WSL2 : Docker Compose network "coursql" ]
+[ Docker Compose network "coursql" ]
    ┌─────────────┐     ┌──────────────┐     ┌─────────────────────┐
    │  app        │ ──▶ │  (Nginx prod) │ ──▶ │  mysql  (mysql:8.4)  │
    │  Node+TS    │     │  reverse proxy│     │  coursql_app         │
    │  API + front│     └──────────────┘     │  seed_* / ex_*       │
    └─────────────┘                          └─────────────────────┘
-        ▲ published port 8080 → écouté sur l'hôte → the private network
+        ▲ published port 8080 → écouté sur l'hôte
 ```
 
-- **Pourquoi WSL de bout en bout** : la seule frontière Windows↔WSL restante est **un port publié** (`8080`) exposé à l'hôte Windows, puis à the private network. C'est un point unique, stable, sans dépendance à l'IP interne de la VM. Toute la communication API↔MySQL reste **intra-Compose** (DNS de service), ce qui **élimine** le problème de frontière signalé pour Docker-par-exercice.
-- **Exposition the private network** : le port publié est atteint via le nom de machine the private network (`localhost:8080`, à l'image des autres projets). Pas d'exposition Internet publique. TLS/Nginx = durcissement (le slice actuel peut servir en clair sur le réseau the private network privé).
-- **Alternative rejetée** : MySQL dans WSL + **API côté Windows** → réintroduit exactement la frontière Windows↔WSL (IP/port de la VM instables, mapping fragile). Rejetée pour la même raison que Docker-par-exercice.
+- **Pourquoi tout en Compose** : la seule frontière restante est **un port publié** (`8080`) exposé à l'hôte. C'est un point unique, stable, sans dépendance à une IP interne. Toute la communication API↔MySQL reste **intra-Compose** (DNS de service), ce qui **élimine** le problème de frontière signalé pour Docker-par-exercice.
+- **Exposition** : le port publié est atteint sur le réseau privé de l'hôte. Pas d'exposition Internet publique. TLS/Nginx = durcissement (le slice actuel peut servir en clair sur le réseau privé).
+- **Alternative rejetée** : MySQL en conteneur + **API hors conteneur sur l'hôte** → réintroduit une frontière hôte↔conteneur (IP/port instables, mapping fragile). Rejetée pour la même raison que Docker-par-exercice.
 - **Conséquence dev** : `docker compose up` **dans un terminal WSL** à la racine du projet (monté depuis `<project>`). Un seul point d'accès pour l'utilisateur.
 
 ---
@@ -905,7 +905,7 @@ Chaque critère = au moins un test automatisé (unitaire ou intégration).
 
 Séquence par dépendances, chaque étape livrable et testable :
 
-1. **Squelette repo & services** : `package.json` (version `1.0.0`), `README`, `CHANGELOG`, Docker Compose (Nginx, API, MySQL 8.4), migrations de la base app.
+1. **Squelette repo** : `package.json` (version `1.0.0`), `README`, `CHANGELOG`, Docker Compose (Nginx, API, MySQL 8.4), migrations de la base app.
 2. **Comptes & isolation MySQL** : 3 comptes + **bases seed partagées (lecture seule)** + provisioning/reset d'une base `ex_<hash>` mutante (avant toute UI). Tests §11 #7,#8,#11,#12,#19.
 3. **Moteur d'exécution + validation** : EXECUTOR, aiguillage seed/instance, timeouts, caps, comparateur multi-ensemble (NULL/DECIMAL/ordre). Tests §11 #1–#6,#9,#10.
 4. **Format d'exercice & cartes** : chargeur de manifestes (`role`), hash de version, modèle carte→gating→exercices, 3 exercices `practice` de §12.3 + gating de gabarit.
@@ -920,9 +920,9 @@ Séquence par dépendances, chaque étape livrable et testable :
 
 ## 12.16 — Questions à trancher avant l'implémentation
 
-> **Toutes tranchées** en **1.2.0** — voir le tableau **§12.0** (portée, gating bienveillant, prérequis visibles, quiz, archivage SQL, erreurs affichées, locale FR + mots-clés EN, déploiement WSL/the private network, pas de reaper + réutilisation d'instance, timeouts/caps, collation, versionnage, accessibilité WCAG AA, session). Résolutions antérieures : *isolation* hybride sans Docker (§12.4.a), *`INTERSECT`/`EXCEPT`* pleins (C41), *découpage* 15 modules / 50 cartes (§12.2).
+> **Toutes tranchées** en **1.2.0** — voir le tableau **§12.0** (portée, gating bienveillant, prérequis visibles, quiz, archivage SQL, erreurs affichées, locale FR + mots-clés EN, déploiement mono-serveur Docker Compose, pas de reaper + réutilisation d'instance, timeouts/caps, collation, versionnage, accessibilité WCAG AA, session). Résolutions antérieures : *isolation* hybride sans Docker (§12.4.a), *`INTERSECT`/`EXCEPT`* pleins (C41), *découpage* 15 modules / 50 cartes (§12.2).
 
 **Reste à cadrer au fil de l'eau (non bloquant pour la tranche verticale)** :
 1. **Rythme d'écriture du contenu** : ordre et lot des cartes après la tranche C1→C5 (C6→C11 puis C12→… ?).
 2. **Bibliothèque de scénarios** : jeux de données seed à mutualiser entre cartes (bibliothèque, magasin, école…) pour limiter la charge de rédaction.
-3. **Durcissement prod** : activer Nginx + TLS devant l'app même en réseau the private network privé, ou rester en clair intra-the private network ?
+3. **Durcissement prod** : activer Nginx + TLS devant l'app même sur le réseau privé, ou rester en clair sur ce réseau ?
