@@ -3,6 +3,15 @@
 Toutes les évolutions notables de ce projet sont consignées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/).
 
+## [2.3.1] - 2026-10-01
+
+### Docs
+- **README professionnel** : badges (version, licence, PHP, MySQL), statut et version courante,
+  prérequis, configuration (noms et rôles des variables de `.env.example` et de `php/api/config.php`,
+  sans valeurs), déploiement, tests (`php/tests/`), versionnage et feuille de route, sécurité
+  (signalement, secrets hors dépôt, avertissement d'exposition), contribution, licence (propriétaire),
+  auteur. Version bump 2.3.1 (`package.json`, `client/package.json`, `php/api/config.php`).
+
 ## [2.3.0] - 2026-08-27
 
 ### Added — 30-day sessions

@@ -36,7 +36,7 @@ function coursql_config(): array
         || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
 
     return [
-        'version' => '2.3.0',
+        'version' => '2.3.1',
         'db_host' => (string) $read(['host', 'OVH_SERVER_ADD', 'DB_HOST'], '127.0.0.1'),
         'db_port' => (int) $read(['port', 'DB_PORT'], 3306),
         'db_name' => (string) $read(['name', 'OVH_DB_NAME', 'DB_NAME']),
