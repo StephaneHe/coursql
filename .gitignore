@@ -11,3 +11,7 @@ api/dist/
 # PHP port: generated content outside webroot + local DB config (secrets)
 private/
 private_coursql/
+
+# Local-only: Claude settings + internal audit (references scrubbed infra details)
+.claude/
+docs/PORTFOLIO_READINESS.md
